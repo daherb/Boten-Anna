@@ -12,6 +12,7 @@ onJoinMsg s m =
     do
       putStr "Joinmsg: "
       putStrLn $ show m
+      sendCmd s (MMode (B.pack (head (cChannels freenode))) (B.pack "+o") (mNick m))
                  
 events = [(Privmsg onPrivMsg), (Join onJoinMsg)]
            
