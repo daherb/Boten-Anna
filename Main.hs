@@ -7,8 +7,10 @@ channelname = "#esslli2015"
               
 onPrivMsg :: EventFunc
 onPrivMsg s m
-    |  B.isPrefixOf (B.pack botnick) msg = do
+    |  B.isPrefixOf (B.pack (botnick ++ ":")) msg = do
       sendMsg s chan (B.append (B.pack "What do you want to accomplish by saying: \"") (B.append (B.drop ((length botnick) + 2) msg) (B.pack "\"?")))
+    | fst (B.breakSubstring (B.pack " bot ") msg) == msg = do
+      sendMsg s chan (B.pack "I am not a bot")
     | True =
         do
           putStr "Privmsg: "
