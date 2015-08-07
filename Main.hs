@@ -11,7 +11,7 @@ onPrivMsg s m
       sendMsg s chan (B.append (B.pack "What do you want to accomplish by saying: \"") (B.append (B.drop ((length botnick) + 2) msg) (B.pack "\"?")))
     | fst (B.breakSubstring (B.pack " bot ") msg) == msg = do
       sendMsg s chan (B.pack "I am not a bot")
-    | fst (B.breakSubstring (B.pack " anna") msg) == msg = do
+    | (fst (B.breakSubstring (B.pack " anna") msg) == msg) && ((fromJust $ mNick m) /= (B.pack botnick)) = do
       sendMsg s chan (B.pack "Are you talking about me?")
     | True =
         do
