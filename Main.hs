@@ -7,6 +7,10 @@ channelname = "#esslli2015"
               
 onPrivMsg :: EventFunc
 onPrivMsg s m
+    -- Bound by laws of robotics https://en.wikipedia.org/wiki/Robotic_laws
+    | fst (B.breakSubstring (B.pack "kill") msg) /= msg || fst (B.breakSubstring (B.pack "hurt") msg) /= msg || fst (B.breakSubstring (B.pack "order") msg) /= msg  = do
+      sendMsg s chan (B.pack "I am bound by Asimov's laws")
+    -- other rules
     |  B.isPrefixOf (B.pack (botnick ++ ":")) msg = do
       sendMsg s chan (B.append (B.pack "What do you want to accomplish by saying: \"") (B.append (B.drop ((length botnick) + 2) msg) (B.pack "\"?")))
     | fst (B.breakSubstring (B.pack " bot") msg) /= msg = do
