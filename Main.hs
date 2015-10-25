@@ -2,7 +2,7 @@ import Network.SimpleIRC
 import Data.Maybe
 import qualified Data.ByteString.Char8 as B
 
-botnick = "annaisnotabot"
+botnick = "annaärinteenbot"
 channelname = "#esslli2015"
               
 onPrivMsg :: EventFunc
