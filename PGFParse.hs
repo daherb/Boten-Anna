@@ -1,9 +1,20 @@
-module PGFParse (parseWithPGF) where
+module PGFParse (parseWithPGF,findInBracketed) where
 import PGF
 import Data.Maybe
+import Data.Bool
 import Control.Exception
 
-handleOutputs (_,b) = b
+findInBracketed needle ((Leaf l) : bs) =
+  l == needle
+findInBracketed needle ((Bracket cid _ _ _ _ b) : bs) =
+  let
+    ncid = mkCId needle
+  in
+    if ncid == cid then True
+    else findInBracketed needle b || findInBracketed needle bs
+findInBracketed needle b =
+  False
+  
 
 parseLoop prel l pgf =
   let
