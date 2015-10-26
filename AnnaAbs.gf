@@ -13,5 +13,6 @@ abstract AnnaAbs = {
     tell : Command ;
     op : Command ;
     deop : Command ; 
-    s : Command -> S ;
+    commandS : Command -> S ;
+    commentS : Comment -> S ;
 }

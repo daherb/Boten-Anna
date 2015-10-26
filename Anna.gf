@@ -20,6 +20,13 @@ concrete Anna of AnnaAbs = open Prelude in {
     tell = { pre1 = "" ; pre2 = "" ; mid = "tell" ; } ;
     op = { pre1 = "" ; pre2 = "" ;  mid = "op" } ;
     deop = { pre1 = "" ; pre2 = "" ;  mid = "de-op" } ;
-    s c = c.pre1 ++ c.pre2 ++ c.mid ;
+    commandS c = c.pre1 ++ c.pre2 ++ c.mid ;
+    commentS c =
+      let
+        n = Sg | Pl ;
+	cs = Nom | Gen ;
+      in
+        c ! n ! cs ;
+      
 }
  
