@@ -5,8 +5,6 @@ import PGF
 import Data.Char
 import qualified Data.ByteString.Char8 as B
 import Data.IORef
-import qualified Data.List
-import Data.List.Unique
 import Data.Time
 import System.Locale
 
