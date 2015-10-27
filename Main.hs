@@ -5,6 +5,7 @@ import PGF
 import Data.Char
 import qualified Data.ByteString.Char8 as B
 
+version = "0.2"
 botnick = "annaaerinteenbot"
 channelname = "#botenannatest"
 
