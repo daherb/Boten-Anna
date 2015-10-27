@@ -10,7 +10,7 @@ name:                Boten-Anna
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.0.1
+version:             0.2.0
 
 -- A short (one-line) description of the package.
 synopsis:            It's a IRC bot, isn't it?
@@ -63,7 +63,9 @@ executable Boten-Anna
   build-depends:       base >=4.6,
                        bytestring >= 0.10,
                        simpleirc >= 0.3,
-                       gf >= 3.7
+                       gf >= 3.7,
+                       time >= 1.5,
+                       old-locale >= 1.0
   -- Directories containing source files.
   -- hs-source-dirs:      
   
