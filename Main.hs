@@ -106,7 +106,7 @@ main =
           cRealname            = "Boten Anna",
           cChannels            = [channelname],
           cEvents              = events,
-          cPingTimeoutInterval = 35 * 10^(6::Int),
+          cPingTimeoutInterval = 150 * 10^(6::Int),
           cCTCPVersion         = "Boten-Anna " ++ version,
           cCTCPTime            = fmap (formatTime defaultTimeLocale "%c") getZonedTime
        }                               
