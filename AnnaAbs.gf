@@ -11,6 +11,7 @@ abstract AnnaAbs = {
     bot : Bot ;
     anna : Name ;
     canyou : Command -> Command ;
+    name : Name -> Command -> Command ;
     please : Command -> Command ;
     tell : Command ;
     op : Command ;

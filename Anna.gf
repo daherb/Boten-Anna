@@ -16,6 +16,7 @@ concrete Anna of AnnaAbs = open Prelude in {
       Pl => \\_ => nonExist
       };
     canyou c = c ** { pre1 = "can you" } ;
+    name n c = c ** { pre1 = n ! Sg ! Nom ++ c.pre1 } ;
     please c = c ** { pre2 = "please" } ; 
     tell = { pre1 = "" ; pre2 = "" ; mid = "tell" ; } ;
     op = { pre1 = "" ; pre2 = "" ;  mid = "op" } ;
