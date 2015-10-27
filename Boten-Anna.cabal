@@ -63,9 +63,8 @@ executable Boten-Anna
   build-depends:       base >=4.6,
                        bytestring >= 0.10,
                        simpleirc >= 0.3,
-                       gf >= 3.7,
-                       time >= 1.5,
-                       old-locale >= 1.0
+                       gf >= 3.7
+
   -- Directories containing source files.
   -- hs-source-dirs:      
   

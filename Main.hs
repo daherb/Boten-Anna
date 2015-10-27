@@ -5,8 +5,6 @@ import PGF
 import Data.Char
 import qualified Data.ByteString.Char8 as B
 import Data.IORef
-import Data.Time
-import System.Locale
 
 version = "0.2"
 botnick = "annaaerinteenbot"
@@ -94,7 +92,7 @@ main =
     do
       messages <- newIORef ([])
       let events    = [(Privmsg (onPrivMsg messages)), (Join (onJoinMsg messages))]
-      let config    = IrcConfig {
+      let config    = (mkDefaultConfig "" "") {
           cAddr                = "irc.freenode.net",
           cPort                = 6667,
           cSecure              = False,
@@ -105,8 +103,8 @@ main =
           cChannels            = [channelname],
           cEvents              = events,
           cPingTimeoutInterval = 150 * 10^(6::Int),
-          cCTCPVersion         = "Boten-Anna " ++ version,
-          cCTCPTime            = fmap (formatTime defaultTimeLocale "%c") getZonedTime
+          cCTCPVersion         = "Boten-Anna " ++ version
+--          cCTCPTime            = fmap (formatTime defaultTimeLocale "%c") getZonedTime
        }                               
       connect config False True
 
