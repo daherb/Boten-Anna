@@ -23,7 +23,7 @@ sendResponse s m pre parsed post iomessages
          let newMessages = (B.unpack (fromJust (mNick m)),to,message):messages
          writeIORef iomessages newMessages
          sendMsg s (fromJust $ mChan m) ( B.pack $ ( B.unpack (fromJust (mNick m) ) ) ++ ": I will transmit your message to " ++ to )
-  | findInBracketed "please" parsed && findInBracketed "de-op" parsed && (length ( words post ) > 2) =
+  | findInBracketed "please" parsed && findInBracketed "de-op" parsed && (length ( words post ) == 1 ) =
     let
       ws = words post
     in
@@ -36,7 +36,7 @@ sendResponse s m pre parsed post iomessages
             sendCmd s (MMode (B.pack channelname) (B.pack "-o") (mNick m))
         else
           sendCmd s (MMode (B.pack channelname) (B.pack "-o") (Just $ B.pack $ head ws))
-  | findInBracketed "please" parsed && findInBracketed "op" parsed && (length ( words post ) > 2) =
+  | findInBracketed "please" parsed && findInBracketed "op" parsed && (length ( words post ) == 1 ) =
     let
       ws = words post
     in
@@ -44,6 +44,8 @@ sendResponse s m pre parsed post iomessages
         sendCmd s (MMode (B.pack channelname) (B.pack "+o") (mNick m))
       else
         sendCmd s (MMode (B.pack channelname) (B.pack "+o") (Just $ B.pack $ head ws))
+  | findInBracketed "please" parsed && (findInBracketed "op" parsed || findInBracketed "de-op" parsed ) && (length ( words post ) > 1 ) =
+      sendMsg s (fromJust $ mChan m) (B.pack "You are a little bit verbose, aren't you?")
   | findInBracketed "op" parsed || findInBracketed "deop" parsed =
       sendMsg s (fromJust $ mChan m) (B.pack "You have to be more polite if I should help you")
   | findInBracketed "Name" parsed =
