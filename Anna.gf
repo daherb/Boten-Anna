@@ -4,7 +4,7 @@ concrete Anna of AnnaAbs = open Prelude in {
     Number = Sg | Pl ;
   lincat
     Command = { pre1 : Str ; pre2 : Str ; mid : Str };
-    Comment = Number => Case => Str;
+    Comment, Bot, Name = Number => Case => Str;
     S = Str;
   lin
     bot = table {
@@ -26,7 +26,8 @@ concrete Anna of AnnaAbs = open Prelude in {
         n = Sg | Pl ;
 	cs = Nom | Gen ;
       in
-        c ! n ! cs ;
-      
+      c ! n ! cs ;
+    botC c = c ;
+    nameC c = c ;
 }
  

@@ -5,9 +5,11 @@ abstract AnnaAbs = {
     S ;
     Command ;
     Comment ;
+    Name ;
+    Bot ; 
   fun
-    bot : Comment ;
-    anna : Comment ;
+    bot : Bot ;
+    anna : Name ;
     canyou : Command -> Command ;
     please : Command -> Command ;
     tell : Command ;
@@ -15,4 +17,6 @@ abstract AnnaAbs = {
     deop : Command ; 
     commandS : Command -> S ;
     commentS : Comment -> S ;
+    botC : Bot -> Comment ;
+    nameC : Name -> Comment ;
 }
