@@ -60,8 +60,8 @@ onPrivMsg messages s m =
   do
     mpgf <- pgf
     let text = B.unpack $ mMsg m
-    case parseWithPGF (map (\c -> if elem c ".,!?" then " " else toLower c) mpgf of
-      Nothing -> sendResponse s m (map (\c -> if elem c ".,!?" then " " else toLower c) text) [] "" messages
+    case parseWithPGF (map (\c -> if elem c ".,!?" then ' ' else toLower c) mpgf) of
+      Nothing -> sendResponse s m (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) [] "" messages
       Just (pre,parsed,post) -> sendResponse s m pre [parsed] post messages
 
 printMessages :: [(String,String,String)] -> MIrc -> B.ByteString -> B.ByteString -> IO [String]
