@@ -55,14 +55,24 @@ onJoinMsg s m =
       sendCmd s (MMode chan (B.pack "+o") (mNick m))
     where chan = B.pack channelname
 
-events = [(Privmsg onPrivMsg), (Join onJoinMsg)]
-           
-freenode = (mkDefaultConfig "irc.freenode.net" botnick)
-           {
-             cChannels = [channelname], -- Channels to join on connect
-             cEvents   = events -- Events to bind
-           }                                                                                                                               
 
 main =
     do
-      connect freenode False True
+      messages <- newIORef ([])
+      let events    = [(Privmsg (onPrivMsg messages)), (Join (onJoinMsg messages))]
+      let config    = IrcConfig {
+          cAddr                = "irc.freenode.net",
+          cPort                = 6667,
+          cSecure              = False,
+          cNick                = botnick,
+          cPass                = Nothing, -- Optional server password
+          cUsername            = botnick,
+          cRealname            = "Boten Anna",
+          cChannels            = [channelname],
+          cEvents              = events,
+          cPingTimeoutInterval = 35 * 10^(6::Int),
+          cCTCPVersion         = "Boten-Anna " ++ version,
+          cCTCPTime            = fmap (formatTime defaultTimeLocale "%c") getZonedTime
+       }                               
+      connect config False True
+
