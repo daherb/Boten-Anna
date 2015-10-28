@@ -11,7 +11,8 @@ botnick = "annaaerinteenbot"
 channelname = "#botenannatest"
 
 pgf = readPGF "Anna.pgf"
-  
+
+sendResponse :: MIrc -> IrcMessage -> String -> [BracketedString] -> String -> IORef [([Char], String, String)] -> IO ()
 sendResponse s m pre parsed post iomessages
   | findInBracketed "tell" parsed && (length ( words post ) > 2) =
      let
@@ -20,49 +21,57 @@ sendResponse s m pre parsed post iomessages
      in
        do
          messages <- readIORef iomessages
-         let newMessages = (B.unpack (fromJust (mNick m)),to,message):messages
+         let newMessages = (B.unpack nick,to,message):messages
          writeIORef iomessages newMessages
-         sendMsg s (fromJust $ mChan m) ( B.pack $ ( B.unpack (fromJust (mNick m) ) ) ++ ": I will transmit your message to " ++ to )
+         sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ to )
   | findInBracketed "please" parsed && findInBracketed "de-op" parsed && (length ( words post ) == 1 ) =
     let
       ws = words post
     in
       if head ws == "me" then
-        sendCmd s (MMode (B.pack channelname) (B.pack "-o") (mNick m))
+        sendCmd s (MMode chan (B.pack "-o") (mNick m))
       else
         if head ws == botnick then
           do
-            sendMsg s (fromJust $ mChan m) (B.pack "How dare you?")
-            sendCmd s (MMode (B.pack channelname) (B.pack "-o") (mNick m))
+            sendMsg s chan (B.pack "How dare you?")
+            sendCmd s (MMode chan (B.pack "-o") (mNick m))
         else
-          sendCmd s (MMode (B.pack channelname) (B.pack "-o") (Just $ B.pack $ head ws))
+          sendCmd s (MMode chan (B.pack "-o") (Just $ B.pack $ head ws))
   | findInBracketed "please" parsed && findInBracketed "op" parsed && (length ( words post ) == 1 ) =
     let
       ws = words post
     in
       if head ws == "me" then
-        sendCmd s (MMode (B.pack channelname) (B.pack "+o") (mNick m))
+        sendCmd s (MMode chan (B.pack "+o") (mNick m))
       else
-        sendCmd s (MMode (B.pack channelname) (B.pack "+o") (Just $ B.pack $ head ws))
+        sendCmd s (MMode chan (B.pack "+o") (Just $ B.pack $ head ws))
   | findInBracketed "please" parsed && (findInBracketed "op" parsed || findInBracketed "de-op" parsed ) && (length ( words post ) > 1 ) =
-      sendMsg s (fromJust $ mChan m) (B.pack "You are a little bit verbose, aren't you?")
+      sendMsg s chan (B.pack "You are a little bit verbose, aren't you?")
   | findInBracketed "op" parsed || findInBracketed "deop" parsed =
-      sendMsg s (fromJust $ mChan m) (B.pack "You have to be more polite if I should help you")
+      sendMsg s chan (B.pack "You have to be more polite if I should help you")
   | findInBracketed "Name" parsed =
-      sendMsg s (fromJust $ mChan m) (B.pack "Are you talking about me?")
+      sendMsg s chan (B.pack "Are you talking about me?")
   | findInBracketed "Bot" parsed =
-      sendMsg s (fromJust $ mChan m) (B.pack "I am not a bot!")
+      sendMsg s chan (B.pack "I am not a bot!")
   | (length ( words pre ) >= 1) && (head $ words pre) == (botnick ++ ":") =
-      sendMsg s (fromJust $ mChan m) (B.pack $ "What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"")
+      sendMsg s chan (B.pack $ "What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"")
   | otherwise = return ()
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 onPrivMsg :: IORef ([(String,String,String)]) -> EventFunc
-onPrivMsg messages s m =
+onPrivMsg iomessages s m =
   do
     mpgf <- pgf
+    messages <- readIORef iomessages
     let text = B.unpack $ mMsg m
+    transmitted <- printMessages messages s nick chan
+    let filteredMessages = filter (\(from,to,msg) -> to /= B.unpack nick) messages
+    writeIORef iomessages filteredMessages
     case parseWithPGF (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) mpgf of
-      Nothing -> sendResponse s m (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) [] "" messages
-      Just (pre,parsed,post) -> sendResponse s m pre [parsed] post messages
+      Nothing -> sendResponse s m (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) [] "" iomessages
+      Just (pre,parsed,post) -> sendResponse s m pre [parsed] post iomessages
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
 printMessages :: [(String,String,String)] -> MIrc -> B.ByteString -> B.ByteString -> IO [String]
 printMessages [] _ _ _ = do return []
@@ -79,7 +88,7 @@ printMessages ((from,to,message):ms) s nick chan =
   
 onJoinMsg :: IORef ([(String,String,String)]) -> EventFunc
 onJoinMsg iomessages s m =
-    do
+  do
       messages <- readIORef iomessages
       sendCmd s (MMode chan (B.pack "+o") (Just nick))
       transmitted <- printMessages messages s nick chan
@@ -87,13 +96,21 @@ onJoinMsg iomessages s m =
       
       writeIORef iomessages filteredMessages
 
-    where chan = B.pack channelname
-          nick = fromJust (mNick m)
+    where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
+          nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
+onInviteMsg :: EventFunc
+onInviteMsg s m =
+    do
+      sendCmd s (MJoin (mMsg m) Nothing)
+    where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
+          nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
+
+main :: IO (Either IOError MIrc)
 main =
     do
       messages <- newIORef ([])
-      let events    = [(Privmsg (onPrivMsg messages)), (Join (onJoinMsg messages))]
+      let events    = [(Privmsg (onPrivMsg messages)), (Join (onJoinMsg messages)), (Invite onInviteMsg)]
       let config    = (mkDefaultConfig "" "") {
           cAddr                = "irc.freenode.net",
           cPort                = 6667,
@@ -108,5 +125,6 @@ main =
           cCTCPVersion         = "Boten-Anna " ++ version
 --          cCTCPTime            = fmap (formatTime defaultTimeLocale "%c") getZonedTime
        }                               
-      connect config False True
-
+      info <- connect config False True
+      server <- let (Right l) = info in return l
+      return info
