@@ -6,7 +6,7 @@ import Data.Char
 import qualified Data.ByteString.Char8 as B
 import Data.IORef
 
-version = "0.2"
+version = "0.3"
 botnick = "annaisnotabot"
 channelname = "#botenannatest"
 
