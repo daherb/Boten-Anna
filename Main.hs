@@ -7,7 +7,7 @@ import qualified Data.ByteString.Char8 as B
 import Data.IORef
 
 version = "0.2"
-botnick = "annaaerinteenbot"
+botnick = "annaisnotabot"
 channelname = "#botenannatest"
 
 pgf = readPGF "Anna.pgf"
