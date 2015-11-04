@@ -12,19 +12,20 @@ channelname = "#botenannatest"
 
 pgf = readPGF "Anna.pgf"
 
-sendResponse :: MIrc -> IrcMessage -> String -> [BracketedString] -> String -> IORef [([Char], String, String)] -> IO ()
+sendResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [([Char], String, String)] -> IO ()
 sendResponse s m pre parsed post iomessages
-  | findInBracketed "tell" parsed && (length ( words post ) > 2) =
+  | findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
      let
        to = head $ words post
+       rcpt = if to == "me" then B.unpack nick else to
        message = unwords $ tail $ words post
      in
        do
          messages <- readIORef iomessages
-         let newMessages = (B.unpack nick,to,message):messages
+         let newMessages = (B.unpack nick,rcpt,message):messages
          writeIORef iomessages newMessages
-         sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ to )
-  | findInBracketed "please" parsed && findInBracketed "de-op" parsed && (length ( words post ) == 1 ) =
+         sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ if to == "me" then "yourself" else rcpt)
+  | findInAbsTrees "please" parsed && findInAbsTrees "deop" parsed && (length ( words post ) == 1 ) =
     let
       ws = words post
     in
@@ -37,7 +38,7 @@ sendResponse s m pre parsed post iomessages
             sendCmd s (MMode chan (B.pack "-o") (mNick m))
         else
           sendCmd s (MMode chan (B.pack "-o") (Just $ B.pack $ head ws))
-  | findInBracketed "please" parsed && findInBracketed "op" parsed && (length ( words post ) == 1 ) =
+  | findInAbsTrees "please" parsed && findInAbsTrees "op" parsed && (length ( words post ) == 1 ) =
     let
       ws = words post
     in
@@ -45,13 +46,13 @@ sendResponse s m pre parsed post iomessages
         sendCmd s (MMode chan (B.pack "+o") (mNick m))
       else
         sendCmd s (MMode chan (B.pack "+o") (Just $ B.pack $ head ws))
-  | findInBracketed "please" parsed && (findInBracketed "op" parsed || findInBracketed "de-op" parsed ) && (length ( words post ) > 1 ) =
+  | findInAbsTrees "please" parsed && (findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed ) && (length ( words post ) > 1 ) =
       sendMsg s chan (B.pack "You are a little bit verbose, aren't you?")
-  | findInBracketed "op" parsed || findInBracketed "deop" parsed =
+  | findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed =
       sendMsg s chan (B.pack "You have to be more polite if I should help you")
-  | findInBracketed "Name" parsed =
+  | findInAbsTrees "name" parsed =
       sendMsg s chan (B.pack "Are you talking about me?")
-  | findInBracketed "Bot" parsed =
+  | findInAbsTrees "bot" parsed =
       sendMsg s chan (B.pack "I am not a bot!")
   | (length ( words pre ) >= 1) && (head $ words pre) == (botnick ++ ":") =
       sendMsg s chan (B.pack $ "What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"")
@@ -68,8 +69,11 @@ onPrivMsg iomessages s m =
     let filteredMessages = filter (\(from,to,msg) -> to /= B.unpack nick) messages
     writeIORef iomessages filteredMessages
     case parseWithPGF (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) mpgf of
-      Nothing -> sendResponse s m (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) [] "" iomessages
-      Just (pre,parsed,post) -> sendResponse s m pre [parsed] post iomessages
+      Left res -> 
+        putStrLn $ show res
+      Right (pre,parsed,post) -> do
+        putStrLn $ "Parse trees: " ++ (show parsed)
+        sendResponse s m pre parsed post iomessages
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 

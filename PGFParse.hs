@@ -1,52 +1,51 @@
-module PGFParse (parseWithPGF,findInBracketed) where
+module PGFParse (parseWithPGF,findInAbsTrees) where
 import PGF
 import Data.Maybe
 import Data.Bool
-import Control.Exception
+import Data.List
 
-findInBracketed needle ((Leaf l) : bs) =
-  l == needle
-findInBracketed needle ((Bracket cid _ _ _ _ b) : bs) =
-  let
-    ncid = mkCId needle
-  in
-    if ncid == cid then True
-    else findInBracketed needle b || findInBracketed needle bs
-findInBracketed needle b =
-  False
+instance Show ParseOutput where
+  show (ParseFailed i) = "Parse failed at " ++ show i
+  show (TypeError tl) = "Type error"
+  show (ParseOk t) = "Ok " ++ show t
+  show ParseIncomplete = "Incomplete"
+
+findInAbsTrees :: String -> [Expr] -> Bool
+findInAbsTrees needle [] = False
+findInAbsTrees needle (hd:tl) =
+  findInAbsTree needle hd || findInAbsTrees needle tl
+  
+findInAbsTree :: String -> Expr -> Bool
+findInAbsTree needle tree = isInfixOf needle (show tree)
   
 
-parseLoop prel l pgf =
+parseLoop prel l postl pgf =
   let
     parseRes = parse_ pgf (head $ languages pgf) (startCat pgf) Nothing l
-    brackets = snd parseRes
-    cat = (\x -> case x of Bracket c _ _ _ _ _ -> c) brackets
-    pos = (\x -> case x of ParseFailed i -> i - 1
-                           _ -> length $ words l) $ fst parseRes
-    rest = unwords $ drop pos $ words l  
+    parseOutput = fst parseRes
   in
-    if showCId cat == "_" then
-        if l == "" then
-            Nothing
-        else
-          let
-            ws = words l
-          in
-            parseLoop (prel ++ " " ++ head ws) (unwords $ tail $ ws) pgf
-    else
-        if (showCId cat) /= (showType [] $ startCat pgf) then 
-            Nothing
-        else
-            Just (prel,brackets,rest) --(maximum parses)
+    case parseOutput of
+      (ParseOk ts) -> Right (prel,ts,postl)
+      (ParseFailed i) ->
+        let
+          ws = words l
+          newprel = if i > 1 then prel
+                    else prel ++ " " ++ head ws
+          newl = if i > 1 then unwords $ take (i - 1) $ ws
+                 else unwords $ tail ws
+          newpostl = if i > 1 then (unwords $ drop (i - 1) $ words l) ++ postl
+                     else postl
+        in
+          parseLoop prel newl newpostl pgf
+      _ -> Left parseOutput
 
 parseWithPGF l pgf =
-  parseLoop "" l pgf
+  parseLoop "" l "" pgf
   
 readLoop pgf =
     do
       l <- getLine
-      let (preB,brackets,postB) = fromJust $ parseLoop "" l pgf
-      catch  (putStrLn $ "Pre: " ++ preB ++ " Brackets: " ++ (showBracketedString $ brackets) ++ " Post: " ++ postB) (\e -> let s = show(e :: SomeException) in putStrLn $ "Panic: " ++ s)
+      either (\p -> do putStrLn $ "Result: " ++ show p) (\(preB,trees,postB) -> putStrLn $ "Pre: " ++ preB ++ "\nTrees:\n" ++ (unlines $ map show trees) ++ "Post: " ++ postB ++ "\n") (parseLoop "" l "" pgf)
       readLoop pgf
 main =
     do
