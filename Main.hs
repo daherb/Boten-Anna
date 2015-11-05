@@ -69,8 +69,9 @@ onPrivMsg iomessages s m =
     let filteredMessages = filter (\(from,to,msg) -> to /= B.unpack nick) messages
     writeIORef iomessages filteredMessages
     case parseWithPGF (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) mpgf of
-      Left res -> 
+      Left res -> do
         putStrLn $ show res
+        sendResponse s m text [] "" iomessages
       Right (pre,parsed,post) -> do
         putStrLn $ "Parse trees: " ++ (show parsed)
         sendResponse s m pre parsed post iomessages
