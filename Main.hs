@@ -8,11 +8,20 @@ import Data.IORef
 
 version = "0.3"
 botnick = "annaisnotabot"
-channelname = "#botenannatest"
+channelnames = ["#botenannatest","#botenannatest1"]
 
+data Message = Envelop {
+  channel :: String,
+  from :: String,
+  to :: String,
+  message :: String };
+  
 pgf = readPGF "Anna.pgf"
 
-sendResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [([Char], String, String)] -> IO ()
+normalize :: String -> String
+normalize = map (\c -> if elem c ".,!?" then ' ' else toLower c)
+
+sendResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [Message] -> IO ()
 sendResponse s m pre parsed post iomessages
   | findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
      let
@@ -22,7 +31,7 @@ sendResponse s m pre parsed post iomessages
      in
        do
          messages <- readIORef iomessages
-         let newMessages = (B.unpack nick,rcpt,message):messages
+         let newMessages = (Envelop { channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
          writeIORef iomessages newMessages
          sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ if to == "me" then "yourself" else rcpt)
   | findInAbsTrees "please" parsed && findInAbsTrees "deop" parsed && (length ( words post ) == 1 ) =
@@ -59,16 +68,17 @@ sendResponse s m pre parsed post iomessages
   | otherwise = return ()
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
-onPrivMsg :: IORef ([(String,String,String)]) -> EventFunc
+        
+onPrivMsg :: IORef ([Message]) -> EventFunc
 onPrivMsg iomessages s m =
   do
     mpgf <- pgf
     messages <- readIORef iomessages
     let text = B.unpack $ mMsg m
-    transmitted <- printMessages messages s nick chan
-    let filteredMessages = filter (\(from,to,msg) -> to /= B.unpack nick) messages
-    writeIORef iomessages filteredMessages
-    case parseWithPGF (map (\c -> if elem c ".,!?" then ' ' else toLower c) text) mpgf of
+    remaining <- printMessages messages s nick chan
+--    let filteredMessages = filter (\(Envelop {channel = c, from = f, to = t, message = m}) -> (t == (normalize $ B.unpack nick) && c == B.unpack chan)) messages
+    writeIORef iomessages remaining
+    case parseWithPGF (normalize text) mpgf of
       Left res -> do
         putStrLn $ show res
         sendResponse s m text [] "" iomessages
@@ -78,28 +88,28 @@ onPrivMsg iomessages s m =
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
-printMessages :: [(String,String,String)] -> MIrc -> B.ByteString -> B.ByteString -> IO [String]
+printMessages :: [Message] -> MIrc -> B.ByteString -> B.ByteString -> IO [Message]
 printMessages [] _ _ _ = do return []
-printMessages ((from,to,message):ms) s nick chan = 
-  if to == B.unpack nick then
+printMessages ((msg@(Envelop {channel = c, from = f,to = t, message = m})):ms) s nick chan = 
+  if t == (normalize $ B.unpack nick) && c == B.unpack chan then
     do
-      sendMsg s chan $ B.pack ((B.unpack nick) ++ ": " ++ from ++ " wants me to tell you " ++ message)
-      sendMsg s chan $ B.pack (from ++ ": Transmitted your message to " ++ (B.unpack nick))
-      tos <- printMessages ms s nick chan
-      return (to:tos)
+      sendMsg s chan $ B.pack ((B.unpack nick) ++ ": " ++ f ++ " wants me to tell you " ++ m)
+      sendMsg s chan $ B.pack (f ++ ": Transmitted your message to " ++ (B.unpack nick))
+      rest <- printMessages ms s nick chan
+      return rest
    else
      do
-       printMessages ms s nick chan
+       rest <- printMessages ms s nick chan
+       return (msg:rest)
   
-onJoinMsg :: IORef ([(String,String,String)]) -> EventFunc
+onJoinMsg :: IORef ([Message]) -> EventFunc
 onJoinMsg iomessages s m =
   do
       messages <- readIORef iomessages
       sendCmd s (MMode chan (B.pack "+o") (Just nick))
-      transmitted <- printMessages messages s nick chan
-      let filteredMessages = filter (\(from,to,msg) -> to /= B.unpack nick) messages
-      
-      writeIORef iomessages filteredMessages
+      remaining <- printMessages messages s nick chan
+--      let filteredMessages = filter (\(Envelop {channel = c, from = f, to = t, message = m}) -> t /= (normalize $ B.unpack nick) && c /= B.unpack chan) messages
+      writeIORef iomessages remaining
 
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
@@ -117,14 +127,14 @@ main =
       messages <- newIORef ([])
       let events    = [(Privmsg (onPrivMsg messages)), (Join (onJoinMsg messages)), (Invite onInviteMsg)]
       let config    = (mkDefaultConfig "" "") {
-          cAddr                = "irc.freenode.net",
+          cAddr                = "chat.freenode.net",
           cPort                = 6667,
           cSecure              = False,
           cNick                = botnick,
           cPass                = Nothing, -- Optional server password
           cUsername            = botnick,
           cRealname            = "Boten Anna",
-          cChannels            = [channelname],
+          cChannels            = channelnames,
           cEvents              = events,
           cPingTimeoutInterval = 350 * 10^(6::Int),
           cCTCPVersion         = "Boten-Anna " ++ version
