@@ -34,6 +34,15 @@ sendResponse s m pre parsed post iomessages
          let newMessages = (Envelop { channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
          writeIORef iomessages newMessages
          sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ if to == "me" then "yourself" else rcpt)
+  | findInAbsTrees "help" parsed && (length ( words pre ) == 0) && (length ( words post ) == 0) =
+      do
+        sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": i listen for possible commands in all conversations in this channel, so you don't have to talk to me directly. I can ''tell'' <someone> <something> or i can ''ping'' <someone> from you. if i am a channel operator i can ''op'' or ''deop'' <someone> if you ask politely. and sometime i am just stupid and annoying.")
+  | findInAbsTrees "ping" parsed && (length ( words post ) == 1 ) =
+      let
+          to = head $ words post
+      in
+        do
+          sendMsg s chan ( B.pack $ ( if to == "me" then B.unpack nick else to ) ++ ": ping from " ++ ( if to == "me" then "yourself" else B.unpack nick) )
   | findInAbsTrees "please" parsed && findInAbsTrees "deop" parsed && (length ( words post ) == 1 ) =
     let
       ws = words post

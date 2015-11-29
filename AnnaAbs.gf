@@ -4,9 +4,11 @@ abstract AnnaAbs = {
   cat
     S ;
     Command ;
-    Op;
-    Deop;
-    Tell;
+    Op ;
+    Deop ;
+    Tell ;
+    Help ;
+    Ping ;
     Comment ;
     Name ;
     Bot ; 
@@ -18,7 +20,9 @@ abstract AnnaAbs = {
     please : Command -> Command ;
     tell : Tell ;
     op : Op ;
-    deop : Deop ; 
+    deop : Deop ;
+    help : Help ;
+    ping : Ping ; 
     commandS : Command -> S ;
     commentS : Comment -> S ;
     botC : Bot -> Comment ;
@@ -26,4 +30,6 @@ abstract AnnaAbs = {
     tellC : Tell -> Command ;
     opC : Op -> Command ;
     deopC : Deop -> Command ;
+    helpC : Help -> Command ;
+    pingC : Ping -> Command ;
 }
