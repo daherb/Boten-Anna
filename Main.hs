@@ -92,7 +92,7 @@ onPrivMsg iomessages s m =
         putStrLn $ show res
         sendResponse s m text [] "" iomessages
       Right (pre,parsed,post) -> do
-        putStrLn $ "Parse trees: " ++ (show parsed)
+        putStrLn $ "Pre: " ++ pre ++ " Parse trees: " ++ (show parsed) ++ " Post: " ++ post ++ " EOL"
         sendResponse s m pre parsed post iomessages
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
