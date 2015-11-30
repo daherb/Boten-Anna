@@ -36,7 +36,7 @@ parseLoop prel l postl pgf =
           newpostl = if i > 1 then (unwords $ drop (i - 1) $ words l) ++ postl
                      else postl
         in
-          parseLoop prel newl newpostl pgf
+          parseLoop newprel newl newpostl pgf
       _ -> Left parseOutput
 
 parseWithPGF l pgf =
