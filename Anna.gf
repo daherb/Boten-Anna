@@ -1,41 +1,38 @@
-concrete Anna of AnnaAbs = open Prelude in {
-  param
-    Case = Nom | Gen ;
-    Number = Sg | Pl ;
-  lincat
-    Command, Op, Deop, Tell, Help, Ping = { pre1 : Str ; pre2 : Str ; mid : Str };
-    Comment, Bot, Name = Number => Case => Str;
-    S = Str;
-  lin
-    bot = table {
-      Sg => table { Nom => "bot" ; Gen => "bots" };
-      Pl => table { _ => "bots" }
-      };
-    anna = table {
-      Sg => table { Nom => "anna" ; Gen => "annas" } ;
-      Pl => \\_ => nonExist
-      };
-    canyou c = c ** { pre1 = "can you" } ;
-    name n c = c ** { pre1 = n ! Sg ! Nom ++ c.pre1 } ;
-    please c = c ** { pre2 = "please" } ;
-    tell = { pre1 = "" ; pre2 = "" ; mid = "tell" ; } ;
-    op = { pre1 = "" ; pre2 = "" ;  mid = "op" } ;
-    deop = { pre1 = "" ; pre2 = "" ;  mid = "de-op" | "deop" } ;
-    help = { pre1 = "" ; pre2 = "" ; mid = "help" } ;
-    ping = { pre1 = "" ; pre2 = "" ; mid = "ping" } ;
-    commandS c = c.pre1 ++ c.pre2 ++ c.mid ;
-    commentS c =
-      let
-        n = Sg | Pl ;
-	cs = Nom | Gen ;
-      in
-      c ! n ! cs ;
-    botC c = c ;
-    nameC c = c ;
-    tellC c = c ;
-    opC c = c ;
-    deopC c = c ;
-    helpC c = c ;
-    pingC c = c ; 
+abstract Anna = {
+  flags
+    startcat = S ;
+  cat
+    S ;
+    Command ;
+    Op ;
+    Deop ;
+    Tell ;
+    Help ;
+    Ping ;
+    Comment ;
+    Name ;
+    Bot ;
+    Placeholder ;
+  fun
+    bot : Bot ;
+    anna : Name ;
+    canyou : Command -> Command ;
+    name : Name -> Command -> Command ;
+    please : Command -> Command ;
+    tell : Tell ;
+    op : Op ;
+    deop : Deop ;
+    help : Help ;
+    ping : Ping ; 
+    commandS : Command -> S ;
+    commentS : Comment -> S ;
+    botC : Bot -> Comment ;
+    nameC : Name -> Comment ;
+    tellC : Tell -> Placeholder -> Command ;
+    opC : Op -> Placeholder -> Command ;
+    deopC : Deop -> Placeholder -> Command ;
+    helpC : Help -> Command ;
+    pingC : Ping -> Placeholder -> Command ;
+    nick : Placeholder;
+    nameP : Name -> Placeholder;
 }
- 
