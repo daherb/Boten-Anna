@@ -4,7 +4,7 @@ concrete AnnaEngR of Anna = open Prelude in {
   oper
     BotT : Type = { bot : Bool } ;
     NameT : Type = { name : Bool } ;
-    CommandT: Type = { command : Str } ;
+    CommandT: Type = { command : Cmd } ;
     PoliteT : Type = { polite : Bool };
   lincat
     Bot = BotT ;
@@ -21,20 +21,21 @@ concrete AnnaEngR of Anna = open Prelude in {
     name n c = n ** c ;
     --    please c = c ** { polite = True } ;
         please c = c  ;
-    tell = { command = "tell"} ;
-    op = { command = "op" } ;
-    deop = { command = "deop" } ;
-    help = { command = "help" } ;
-    ping = { command = "ping" } ;
+    tell = { command = TellC } ;
+    op = { command = OpC } ;
+    deop = { command = DeopC } ;
+    help = { command = HelpC } ;
+    ping = { command = PingC } ;
     commandS c = "" ++
-      case c.command of {
-      -- 	"tell" => "#FROM#: i will tell #TO#" ;
-      -- 	"op" | "deop" => case c.polite of {
-      -- 	  True => "you're welcome" ;
-      -- 	  False => "you have to be more polite if I should help you"
-      -- 	  } ;
-      -- 	"help" => "Bla Fasel" ;
-	Ping => "#FROM#: i will ping #TO# for you"
+    case c.command of {
+      TellC => "#FROM#: i will tell #TO#" ;
+       	OpC | DeopC => case c.polite of {
+       	  True => "you're welcome" ;
+       	  False => "you have to be more polite if I should help you"
+      } ;
+      HelpC => "#FROM#: i listen for possible commands in all conversations in this channel, so you don't have to talk to me directly. I can ''tell'' <someone> <something> or i can ''ping'' <someone> from you. if i am a channel operator i can ''op'' or ''deop'' <someone> if you ask politely. and sometime i am just stupid and annoying." ;
+      PingC => "#FROM#: i will ping #TO# for you"
+	
       } ;
     commentS c =
       case c.name of {
