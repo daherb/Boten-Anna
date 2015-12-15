@@ -19,9 +19,9 @@ findInAbsTree :: String -> Expr -> Bool
 findInAbsTree needle tree = isInfixOf needle (show tree)
   
 
-parseLoop prel l postl pgf =
+parseLoop prel l postl pgf lang open =
   let
-    parseRes = parse_ pgf (head $ languages pgf) (startCat pgf) Nothing l
+    parseRes = parseWithRecovery pgf lang (startCat pgf) open (Just 4) l
     parseOutput = fst parseRes
   in
     case parseOutput of
@@ -36,19 +36,20 @@ parseLoop prel l postl pgf =
           newpostl = if i > 1 then (unwords $ drop (i - 1) $ words l) ++ postl
                      else postl
         in
-          parseLoop newprel newl newpostl pgf
+          parseLoop newprel newl newpostl pgf lang open
       _ -> Left parseOutput
 
-parseWithPGF l pgf =
-  parseLoop "" l "" pgf
+parseWithPGF l pgf lang open =
+  parseLoop "" l "" pgf lang open
   
 readLoop pgf =
     do
       l <- getLine
-      either (\p -> do putStrLn $ "Result: " ++ show p) (\(preB,trees,postB) -> putStrLn $ "Pre: " ++ preB ++ "\nTrees:\n" ++ (unlines $ map show trees) ++ "Post: " ++ postB ++ "\n") (parseLoop "" l "" pgf)
+      either (\p -> do putStrLn $ "Result: " ++ show p) (\(preB,trees,postB) -> putStrLn $ "Pre: " ++ preB ++ "\nTrees:\n" ++ (unlines $ map show trees) ++ "Post: " ++ postB ++ "\n") (parseWithPGF l pgf (head $ languages pgf) [])
       readLoop pgf
 main =
     do
       pgf <- readPGF "Anna.pgf"
       readLoop pgf
-      
+    
+    
