@@ -5,7 +5,7 @@ import PGF
 import Data.Char
 import qualified Data.ByteString.Char8 as B
 import Data.IORef
-
+import Data.List
 version = "0.3"
 botnick = "annaisnotabot"
 channelnames = ["#botenannatest","#botenannatest1"]
@@ -22,72 +22,77 @@ normalize :: String -> String
 normalize = map (\c -> if elem c ".,!?" then ' ' else toLower c)
 
 sendResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [Message] -> IO ()
-sendResponse s m pre parsed post iomessages
-  | findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
-     let
-       to = head $ words post
-       rcpt = if to == "me" then B.unpack nick else to
-       message = unwords $ tail $ words post
-     in
-       do
-         messages <- readIORef iomessages
-         let newMessages = (Envelop { channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
-         writeIORef iomessages newMessages
-         sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ if to == "me" then "yourself" else rcpt)
-  | findInAbsTrees "help" parsed && (length ( words pre ) == 0) && (length ( words post ) == 0) =
-      do
-        sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": i listen for possible commands in all conversations in this channel, so you don't have to talk to me directly. I can ''tell'' <someone> <something> or i can ''ping'' <someone> from you. if i am a channel operator i can ''op'' or ''deop'' <someone> if you ask politely. and sometime i am just stupid and annoying.")
-  | findInAbsTrees "ping" parsed && (length ( words post ) == 1 ) =
-      let
-          to = head $ words post
-      in
-        do
-          sendMsg s chan ( B.pack $ ( if to == "me" then B.unpack nick else to ) ++ ": ping from " ++ ( if to == "me" then "yourself" else B.unpack nick) )
-  | findInAbsTrees "please" parsed && findInAbsTrees "deop" parsed && (length ( words post ) == 1 ) =
-    let
-      ws = words post
-    in
-      if head ws == "me" then
-        sendCmd s (MMode chan (B.pack "-o") (mNick m))
-      else
-        if head ws == botnick then
-          do
-            sendMsg s chan (B.pack "How dare you?")
-            sendCmd s (MMode chan (B.pack "-o") (mNick m))
-        else
-          sendCmd s (MMode chan (B.pack "-o") (Just $ B.pack $ head ws))
-  | findInAbsTrees "please" parsed && findInAbsTrees "op" parsed && (length ( words post ) == 1 ) =
-    let
-      ws = words post
-    in
-      if head ws == "me" then
-        sendCmd s (MMode chan (B.pack "+o") (mNick m))
-      else
-        sendCmd s (MMode chan (B.pack "+o") (Just $ B.pack $ head ws))
-  | findInAbsTrees "please" parsed && (findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed ) && (length ( words post ) > 1 ) =
-      sendMsg s chan (B.pack "You are a little bit verbose, aren't you?")
-  | findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed =
-      sendMsg s chan (B.pack "You have to be more polite if I should help you")
-  | findInAbsTrees "name" parsed =
-      sendMsg s chan (B.pack "Are you talking about me?")
-  | findInAbsTrees "bot" parsed =
-      sendMsg s chan (B.pack "I am not a bot!")
-  | (length ( words pre ) >= 1) && (head $ words pre) == (botnick ++ ":") =
-      sendMsg s chan (B.pack $ "What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"")
-  | otherwise = return ()
+sendResponse s m pre parsed post iomessages =
+    do
+      grammar <- pgf
+      let response = linearize grammar (mkCId "EngR") $ head parsed
+      return ()
+  -- | isPrefixOf ( botnick ++ ":" ) pre && findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
+  --    let
+  --      to = head $ words post
+  --      rcpt = if to == "me" then B.unpack nick else to
+  --      message = unwords $ tail $ words post
+  --    in
+  --      do
+  --        putStrLn "Case 1"
+  --        messages <- readIORef iomessages
+  --        let newMessages = (Envelop { channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
+  --        writeIORef iomessages newMessages
+  --        sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ if to == "me" then "yourself" else rcpt)
+  -- | pre == ( botnick ++ ":" )&& findInAbsTrees "help" parsed &&  (length ( words post ) == 0) = -- (length ( words pre ) == 0) &&
+  --     do
+  --       sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": ")
+  -- | findInAbsTrees "ping" parsed && (length ( words post ) == 1 ) =
+  --     let
+  --         to = head $ words post
+  --     in
+  --       do
+  --         sendMsg s chan ( B.pack $ ( if to == "me" then B.unpack nick else to ) ++ ": ping from " ++ ( if to == "me" then "yourself" else B.unpack nick) )
+  -- | findInAbsTrees "please" parsed && findInAbsTrees "deop" parsed && (length ( words post ) == 1 ) =
+  --   let
+  --     ws = words post
+  --   in
+  --     if head ws == "me" then
+  --       sendCmd s (MMode chan (B.pack "-o") (mNick m))
+  --     else
+  --       if head ws == botnick then
+  --         do
+  --           sendMsg s chan (B.pack "How dare you?")
+  --           sendCmd s (MMode chan (B.pack "-o") (mNick m))
+  --       else
+  --         sendCmd s (MMode chan (B.pack "-o") (Just $ B.pack $ head ws))
+  -- | findInAbsTrees "please" parsed && findInAbsTrees "op" parsed && (length ( words post ) == 1 ) =
+  --   let
+  --     ws = words post
+  --   in
+  --     if head ws == "me" then
+  --       sendCmd s (MMode chan (B.pack "+o") (mNick m))
+  --     else
+  --       sendCmd s (MMode chan (B.pack "+o") (Just $ B.pack $ head ws))
+  -- | findInAbsTrees "please" parsed && (findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed ) && (length ( words post ) > 1 ) =
+  --     sendMsg s chan (B.pack "You are a little bit verbose, aren't you?")
+  -- | findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed =
+  --     sendMsg s chan (B.pack "You have to be more polite if I should help you")
+  -- | findInAbsTrees "name" parsed =
+  --     sendMsg s chan (B.pack "Are you talking about me?")
+  -- | findInAbsTrees "bot" parsed =
+  --     sendMsg s chan (B.pack "I am not a bot!")
+  -- | (length ( words pre ) >= 1) && isPrefixOf botnick pre = --(head $ words pre) == (botnick ++ ":") =
+  --     sendMsg s chan (B.pack $ "What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"")
+  -- | otherwise = return ()
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
         
-onPrivMsg :: IORef ([Message]) -> EventFunc
-onPrivMsg iomessages s m =
+onPrivMsg :: IORef ([Message]) -> IORef ([String]) -> EventFunc
+onPrivMsg iomessages ionicks s m =
   do
     mpgf <- pgf
     messages <- readIORef iomessages
     let text = B.unpack $ mMsg m
     remaining <- printMessages messages s nick chan
---    let filteredMessages = filter (\(Envelop {channel = c, from = f, to = t, message = m}) -> (t == (normalize $ B.unpack nick) && c == B.unpack chan)) messages
     writeIORef iomessages remaining
-    case parseWithPGF (normalize text) mpgf of
+    putStrLn ("###" ++ text)
+    case parseWithPGF (normalize text) mpgf (mkCId "EngQ") [mkType [] (mkCId "Placeholder") []] of
       Left res -> do
         putStrLn $ show res
         sendResponse s m text [] "" iomessages
@@ -111,15 +116,15 @@ printMessages ((msg@(Envelop {channel = c, from = f,to = t, message = m})):ms) s
        rest <- printMessages ms s nick chan
        return (msg:rest)
   
-onJoinMsg :: IORef ([Message]) -> EventFunc
-onJoinMsg iomessages s m =
+onJoinMsg :: IORef ([Message]) -> IORef ([String]) -> EventFunc
+onJoinMsg iomessages ionicks s m =
   do
-      messages <- readIORef iomessages
-      sendCmd s (MMode chan (B.pack "+o") (Just nick))
-      remaining <- printMessages messages s nick chan
---      let filteredMessages = filter (\(Envelop {channel = c, from = f, to = t, message = m}) -> t /= (normalize $ B.unpack nick) && c /= B.unpack chan) messages
-      writeIORef iomessages remaining
-
+    messages <- readIORef iomessages
+    nicks <- readIORef ionicks
+    sendCmd s (MMode chan (B.pack "+o") (Just nick))
+    remaining <- printMessages messages s nick chan
+    writeIORef iomessages remaining
+    writeIORef ionicks ((B.unpack nick):nicks)
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
@@ -130,11 +135,19 @@ onInviteMsg s m =
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
+onPartMsg :: IORef ([String]) -> EventFunc
+onPartMsg ionicks s m =
+  do
+    nicks <- readIORef ionicks
+    writeIORef ionicks (filter (\n -> n /= B.unpack nick ) nicks)
+    where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
+          nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 main :: IO (Either IOError MIrc)
 main =
     do
       messages <- newIORef ([])
-      let events    = [(Privmsg (onPrivMsg messages)), (Join (onJoinMsg messages)), (Invite onInviteMsg)]
+      nicks <- newIORef ([])
+      let events    = [(Privmsg (onPrivMsg messages nicks)), (Join (onJoinMsg messages nicks)), (Invite onInviteMsg), (Part (onPartMsg nicks))]
       let config    = (mkDefaultConfig "" "") {
           cAddr                = "chat.freenode.net",
           cPort                = 6667,
