@@ -28,6 +28,7 @@ abstract Anna = {
     commentS : Comment -> S ;
     botC : Bot -> Comment ;
     nameC : Name -> Comment ;
+    whoareyouC : Comment ;
     tellC : Tell -> Placeholder -> Command ;
     opC : Op -> Placeholder -> Command ;
     deopC : Deop -> Placeholder -> Command ;

@@ -33,6 +33,7 @@ concrete AnnaEngQ of Anna = open Prelude in {
       c ! n ! cs ;
     botC c = c ;
     nameC c = c ;
+    whoareyouC = \\_,_ => "who are you" ;
     tellC c p = c ** { mid = c.mid ++ p.s } ;
     opC c p = c ** { mid = c.mid ++ p.s } ;
     deopC c p = c ** { mid = c.mid ++ p.s } ;
