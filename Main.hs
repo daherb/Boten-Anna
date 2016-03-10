@@ -7,8 +7,8 @@ import qualified Data.ByteString.Char8 as B
 import Data.IORef
 import Data.List
 version = "0.3"
-botnick = "annaisnotabot"
-channelnames = ["#botenannatest","#botenannatest1"]
+botNick = "annaisnotabot"
+channelNames = ["#botenannatest","#botenannatest1"]
 
 data Message = Envelop {
   channel :: String,
@@ -152,11 +152,11 @@ main =
           cAddr                = "chat.freenode.net",
           cPort                = 6667,
           cSecure              = False,
-          cNick                = botnick,
+          cNick                = botNick,
           cPass                = Nothing, -- Optional server password
-          cUsername            = botnick,
+          cUsername            = botNick,
           cRealname            = "Boten Anna",
-          cChannels            = channelnames,
+          cChannels            = channelNames,
           cEvents              = events,
           cPingTimeoutInterval = 350 * 10^(6::Int),
           cCTCPVersion         = "Boten-Anna " ++ version
