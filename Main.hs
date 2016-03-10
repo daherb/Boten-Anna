@@ -9,6 +9,7 @@ import Data.List
 import qualified Data.Set as S
 import System.IO
 import Control.Monad
+import qualified Data.Text as T
 
 -- Global config constants
 version = "0.3"
@@ -151,8 +152,8 @@ onPrivMsg iomessages ionicks s m =
     -- Get constants and parameters
     mpgf <- pgf
     messages <- readIORef iomessages
-    -- Get message text
-    let text = B.unpack $ mMsg m
+    -- Get message text and replace the bot name by the name used in grammar
+    let text = T.unpack $ T.replace (T.pack botNick) (T.pack "anna") (T.pack $ B.unpack $ mMsg m)
     -- Forward messages and save the remaining ones again
     remaining <- printMessages messages s nick chan
     writeIORef iomessages remaining
