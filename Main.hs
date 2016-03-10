@@ -6,9 +6,17 @@ import Data.Char
 import qualified Data.ByteString.Char8 as B
 import Data.IORef
 import Data.List
+import qualified Data.Set as S
+import System.IO
+import Control.Monad
 version = "0.3"
 botNick = "annaisnotabot"
 channelNames = ["#botenannatest","#botenannatest1"]
+debugMsg = False
+logging = True
+logName = "boten-anna.log"
+
+type NickList = ([(B.ByteString,S.Set B.ByteString)])
 
 data Message = Envelop {
   channel :: String,
@@ -82,8 +90,8 @@ sendResponse s m pre parsed post iomessages =
   -- | otherwise = return ()
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
-        
-onPrivMsg :: IORef ([Message]) -> IORef ([String]) -> EventFunc
+
+onPrivMsg :: IORef ([Message]) -> IORef NickList -> EventFunc
 onPrivMsg iomessages ionicks s m =
   do
     mpgf <- pgf
@@ -116,18 +124,23 @@ printMessages ((msg@(Envelop {channel = c, from = f,to = t, message = m})):ms) s
        rest <- printMessages ms s nick chan
        return (msg:rest)
   
-onJoinMsg :: IORef ([Message]) -> IORef ([String]) -> EventFunc
-onJoinMsg iomessages ionicks s m =
+onJoinMsg :: IORef ([Message]) -> IORef NickList -> EventFunc
+onJoinMsg iomessages ionicklist s m =
   do
     messages <- readIORef iomessages
-    nicks <- readIORef ionicks
-    sendCmd s (MMode chan (B.pack "+o") (Just nick))
+    nickList <- readIORef ionicklist
+    if nick == (B.pack botNick) then
+      sendRaw s (B.pack "NAMES channel")
+    else
+      sendCmd s (MMode chan (B.pack "+o") (Just nick))
     remaining <- printMessages messages s nick chan
     writeIORef iomessages remaining
-    writeIORef ionicks ((B.unpack nick):nicks)
+    let newNickList = map (\(c,ns) -> if c == chan then (c, S.insert nick ns) else (c,ns)) nickList
+    writeIORef ionicklist newNickList
+    putStrLn $ show newNickList
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
-
+    
 onInviteMsg :: EventFunc
 onInviteMsg s m =
     do
@@ -135,19 +148,45 @@ onInviteMsg s m =
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
-onPartMsg :: IORef ([String]) -> EventFunc
-onPartMsg ionicks s m =
+onPartMsg :: IORef NickList -> EventFunc 
+onPartMsg ionicklist s m =
   do
-    nicks <- readIORef ionicks
-    writeIORef ionicks (filter (\n -> n /= B.unpack nick ) nicks)
+    nickList <- readIORef ionicklist
+    let newNickList = map (\(c,ns) -> if c == chan then (c, ns S.\\ (S.singleton nick)) else (c,ns)) nickList
+    writeIORef ionicklist newNickList
+    putStrLn $ show newNickList
+    where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
+          nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
+
+-- >> :rajaniemi.freenode.net 353 annaisnotabot @ #botenannatest :annaisnotabot @daherb
+onRawMsg :: IORef Handle -> IORef NickList -> EventFunc
+onRawMsg iohandle ionicklist s m =
+  do
+    handle <- readIORef iohandle
+    nickList <- readIORef ionicklist
+    when logging $ hPutStrLn handle $ show m
+    if ((B.isInfixOf . B.pack) " 353 " $ mMsg m) then
+      -- Remove the channel name, the space and the colon and then split at spaces
+      do
+        let nicks = B.words $ B.drop (B.length chan + 2) $ snd $ B.breakSubstring chan $ mMsg m
+        let newNicks = S.fromList $ map (\n -> if (elem . B.head) n "@+" then B.drop 1 n else n) nicks
+        let newNickList = map (\(c,ns) -> if c == chan then (c, newNicks) else (c,ns)) nickList
+        writeIORef ionicklist newNickList
+        putStrLn $ show newNickList
+        return ()
+      else
+      return ()
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 main :: IO (Either IOError MIrc)
 main =
     do
       messages <- newIORef ([])
-      nicks <- newIORef ([])
-      let events    = [(Privmsg (onPrivMsg messages nicks)), (Join (onJoinMsg messages nicks)), (Invite onInviteMsg), (Part (onPartMsg nicks))]
+      nickList <- newIORef (map (\c -> (B.pack c,S.empty)) channelNames )
+      let fileName = logName
+      fhandle <- if logging then openFile fileName AppendMode else return stderr
+      handle <- newIORef $ fhandle
+      let events    = [(Privmsg (onPrivMsg messages nickList)), (Join (onJoinMsg messages nickList)), (Invite onInviteMsg), (Part (onPartMsg nickList)), (RawMsg (onRawMsg handle nickList))]
       let config    = (mkDefaultConfig "" "") {
           cAddr                = "chat.freenode.net",
           cPort                = 6667,
@@ -161,7 +200,7 @@ main =
           cPingTimeoutInterval = 350 * 10^(6::Int),
           cCTCPVersion         = "Boten-Anna " ++ version
 --          cCTCPTime            = fmap (formatTime defaultTimeLocale "%c") getZonedTime
-       }                               
-      info <- connect config False True
+       }
+      info <- connect config False debugMsg
       server <- let (Right l) = info in return l
       return info
