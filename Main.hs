@@ -34,24 +34,41 @@ normalize :: String -> String
 -- Replace punctuation by spaces and make everything lower case
 normalize = map (\c -> if elem c ".,!?" then ' ' else toLower c)
 
+opUser :: String -> String -> IO ()
+opUser post response = return ();
+
+deopUser :: String -> String -> IO ()
+deopUser post response = return ();
+
+pingUser :: B.ByteString -> String -> String -> IO ()
+pingUser from post response = return ();
+
+tellUser :: B.ByteString -> String -> String -> IO ()
+tellUser from post response = return ()
+
+helpUser :: B.ByteString -> String -> String -> String -> IO ()
+helpUser from pre post response = return ();
+
+sendResponse :: String -> IO ()
+sendResponse response = return ();
+
 -- Send a reply to a message
-sendResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [Message] -> IO ()
-sendResponse s m pre parsed post iomessages =
+doResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [Message] -> IO ()
+doResponse s m pre parsed post iomessages =
     do
       grammar <- pgf
       -- linearize the parsed query inro a response
       let response = linearize grammar (mkCId "AnnaEngR") $ head parsed
       let action = linearize grammar (mkCId "AnnaAct") $ head parsed
       case action of 
-        "OP" -> return ();
-        "DEOP" -> return ();
-        "PING" -> return ();
-        "IMPOLITE PING" -> return ();
-        "TELL" -> return ();
-        "IMPOLITE TELL" -> return ();
-        "HELP" -> return ();
-        "IMPOLITE HELP" -> return ();
-      return ()
+        "OP" -> opUser post response ;
+        "DEOP" -> deopUser post response ;
+        "PING" -> pingUser nick post response ;
+        "IMPOLITE PING" -> pingUser nick post response ;
+        "TELL" -> tellUser nick post response ;
+        "IMPOLITE TELL" -> tellUser nick post response ;
+        "HELP" -> helpUser nick pre post response ;
+        _ -> sendResponse response
   -- | isPrefixOf ( botnick ++ ":" ) pre && findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
   --    let
   --      to = head $ words post
@@ -146,12 +163,12 @@ onPrivMsg iomessages ionicks s m =
       Left res -> do
         putStrLn $ show res
         -- Try to generate a response with the whole unparsed message in the pre parameter
-        sendResponse s m text [] "" iomessages
+        doResponse s m text [] "" iomessages
       -- Parse successful
       Right (pre,parsed,post) -> do
         putStrLn $ "Pre: " ++ pre ++ " Parse trees: " ++ (show parsed) ++ " Post: " ++ post ++ " EOL"
         -- Try to generate a response with the parse tree and a possible pre and post context
-        sendResponse s m pre parsed post iomessages
+        doResponse s m pre parsed post iomessages
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
