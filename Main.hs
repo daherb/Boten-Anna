@@ -35,11 +35,38 @@ normalize :: String -> String
 -- Replace punctuation by spaces and make everything lower case
 normalize = map (\c -> if elem c ".,!?" then ' ' else toLower c)
 
-opUser :: String -> String -> IO ()
-opUser post response = return ();
-
-deopUser :: String -> String -> IO ()
-deopUser post response = return ();
+opUser :: String -> String -> EventFunc
+opUser post response s m =
+  let
+      ws = words post
+    in
+      if length ws == 1 then
+        do 
+          if head ws == "me" then
+            sendCmd s (MMode chan (B.pack "+o") (mNick m))
+          else
+            sendCmd s (MMode chan (B.pack "+o") (Just $ B.pack $ head ws))          
+          sendResponse response s m
+      else
+        sendResponse "You are a little bit verbose, aren't you?" s m
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
+deopUser :: String -> String -> EventFunc
+deopUser post response s m =
+    let
+      ws = words post
+    in
+      if length ws == 1 then
+        do 
+          if head ws == "me" then
+            sendCmd s (MMode chan (B.pack "-o") (mNick m))
+          else
+            sendCmd s (MMode chan (B.pack "-o") (Just $ B.pack $ head ws))
+          sendResponse response s m
+      else
+        sendResponse "You are a little bit verbose, aren't you?" s m
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
 pingUser :: B.ByteString -> String -> String -> IO ()
 pingUser from post response = return ();
@@ -47,11 +74,30 @@ pingUser from post response = return ();
 tellUser :: B.ByteString -> String -> String -> IO ()
 tellUser from post response = return ()
 
-helpUser :: B.ByteString -> String -> String -> String -> IO ()
-helpUser from pre post response = return ();
+helpUser :: String -> String -> EventFunc
+helpUser pre response s m =
+  if (isPrefixOf ("anna:" ) pre) then
+    let nResponse = T.unpack $ T.replace (T.pack "#FROM#") (T.pack (B.unpack nick)) (T.pack response)
+    in sendResponse nResponse s m
+  else
+    return ()
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
-sendResponse :: String -> IO ()
-sendResponse response = return ();
+impertinent :: String -> EventFunc
+impertinent response s m =
+  do
+    sendCmd s (MMode chan (B.pack "-o") (mNick m))
+    sendResponse response s m
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
+
+sendResponse :: String -> EventFunc
+sendResponse response s m =
+  do
+    sendMsg s chan (B.pack response)
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
 -- Send a reply to a message
 doResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [Message] -> IO ()
@@ -61,15 +107,19 @@ doResponse s m pre parsed post iomessages =
       -- linearize the parsed query inro a response
       let response = linearize grammar (mkCId "AnnaEngR") $ head parsed
       let action = linearize grammar (mkCId "AnnaAct") $ head parsed
+      putStrLn (action ++ ": " ++ response)
       case action of 
-        "OP" -> opUser post response ;
-        "DEOP" -> deopUser post response ;
+        "OP" -> opUser post response s m ;
+        "DEOP" -> deopUser post response s m ;
         "PING" -> pingUser nick post response ;
         "IMPOLITE PING" -> pingUser nick post response ;
         "TELL" -> tellUser nick post response ;
         "IMPOLITE TELL" -> tellUser nick post response ;
-        "HELP" -> helpUser nick pre post response ;
-        _ -> sendResponse response
+        "HELP" -> helpUser pre response s m ;
+        "WHO_I_AM" -> helpUser pre response s m ;
+        "IMPERTINENT OP" -> impertinent response s m ;
+        "IMPERTINENT DEOP" -> impertinent response s m ;
+        _ -> helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"") s m
   -- | isPrefixOf ( botnick ++ ":" ) pre && findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
   --    let
   --      to = head $ words post
