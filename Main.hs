@@ -9,6 +9,7 @@ import Data.List
 import qualified Data.Set as S
 import System.IO
 import Control.Monad
+
 version = "0.3"
 botNick = "annaisnotabot"
 channelNames = ["#botenannatest","#botenannatest1"]
@@ -141,10 +142,14 @@ onJoinMsg iomessages ionicklist s m =
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
     
-onInviteMsg :: EventFunc
-onInviteMsg s m =
+
+onInviteMsg :: IORef NickList -> EventFunc
+onInviteMsg ionicklist s m =
     do
       sendCmd s (MJoin (mMsg m) Nothing)
+      nickList <- readIORef ionicklist
+      let newNickList = if not (isNothing $ find (\(c,_) -> c == chan) nickList) then ((chan, S.empty):nickList) else nickList
+      writeIORef ionicklist newNickList
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
@@ -186,7 +191,7 @@ main =
       let fileName = logName
       fhandle <- if logging then openFile fileName AppendMode else return stderr
       handle <- newIORef $ fhandle
-      let events    = [(Privmsg (onPrivMsg messages nickList)), (Join (onJoinMsg messages nickList)), (Invite onInviteMsg), (Part (onPartMsg nickList)), (RawMsg (onRawMsg handle nickList))]
+      let events    = [(Privmsg (onPrivMsg messages nickList)), (Join (onJoinMsg messages nickList)), (Invite (onInviteMsg nickList)), (Part (onPartMsg nickList)), (RawMsg (onRawMsg handle nickList))]
       let config    = (mkDefaultConfig "" "") {
           cAddr                = "chat.freenode.net",
           cPort                = 6667,
