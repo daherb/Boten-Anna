@@ -40,7 +40,17 @@ sendResponse s m pre parsed post iomessages =
     do
       grammar <- pgf
       -- linearize the parsed query inro a response
-      let response = linearize grammar (mkCId "EngR") $ head parsed
+      let response = linearize grammar (mkCId "AnnaEngR") $ head parsed
+      let action = linearize grammar (mkCId "AnnaAct") $ head parsed
+      case action of 
+        "OP" -> return ();
+        "DEOP" -> return ();
+        "PING" -> return ();
+        "IMPOLITE PING" -> return ();
+        "TELL" -> return ();
+        "IMPOLITE TELL" -> return ();
+        "HELP" -> return ();
+        "IMPOLITE HELP" -> return ();
       return ()
   -- | isPrefixOf ( botnick ++ ":" ) pre && findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
   --    let
