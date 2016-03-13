@@ -36,4 +36,10 @@ abstract Anna = {
     pingC : Ping -> Placeholder -> Command ;
     nick : Placeholder;
     nameP : Name -> Placeholder;
+    verboseP : S ; -- When more parameters than expected given
+    tellToRcptP : S ; -- Transmit the message
+    tellToSndP : S ; -- Confirm transmission
+    pingToRcptP : S ; -- Ping someone
+    pingToSndP : S ; -- Confirm ping
+    accomplishP : S ; -- Annoy user
 }

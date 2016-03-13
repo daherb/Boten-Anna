@@ -58,5 +58,11 @@ concrete AnnaAct of Anna = open Prelude in {
     pingC c p = c ** p ** { bot = False ; polite = False } ;
     nick = { name = False } ;
     nameP n = lin Name n ;
+    verboseP = nonExist ;
+    tellToRcptP = nonExist ;
+    tellToSndP = nonExist ;
+    pingToRcptP = nonExist ;
+    pingToSndP = nonExist ;
+    accomplishP = nonExist ;
 }
  

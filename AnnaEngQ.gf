@@ -41,5 +41,11 @@ concrete AnnaEngQ of Anna = open Prelude in {
     pingC c p = c ** { mid = c.mid ++ p.s } ;
     nick = ss "" ;
     nameP n = ss (n ! Sg ! Nom );
+    verboseP = nonExist ;
+    tellToRcptP = nonExist ;
+    tellToSndP = nonExist ;
+    pingToRcptP = nonExist ;
+    pingToSndP = nonExist ;
+    accomplishP = nonExist ;
 }
  

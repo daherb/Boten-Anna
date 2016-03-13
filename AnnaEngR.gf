@@ -55,5 +55,11 @@ concrete AnnaEngR of Anna = open Prelude in {
     pingC c p = c ** p ** { bot = False ; polite = False } ;
     nick = { name = False } ;
     nameP n = lin Name n ;
+    verboseP = "you are a little bit verbose, aren't you?" ;
+    tellToRcptP = "#TO#: #FROM# wants me to tell you #MESSAGE#" ;
+    tellToSndP = "#FROM#: transmitted your message to #TO#" ;
+    pingToRcptP = "#TO#: #FROM# wants me to ping you" ;
+    pingToSndP = "#FROM#: pinged #TO# for you" ;
+    accomplishP = "What do you want to accomplish by saying: \"#MESSAGE#\"" ;
 }
  
