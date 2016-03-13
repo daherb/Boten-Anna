@@ -27,8 +27,11 @@ pgf = readPGF "Anna.pgf"
 -- Data type for the nick list
 type NickList = ([(B.ByteString,S.Set B.ByteString)])
 
+data MessageType = Msg | Png deriving Eq;
+
 -- Data type for the message list
 data Message = Envelop {
+  typ :: MessageType,
   channel :: String,
   from :: String,
   to :: String,
@@ -185,7 +188,7 @@ printMessages :: [Message] -> MIrc -> B.ByteString -> B.ByteString -> IO [Messag
 -- No messages left, do nothing
 printMessages [] _ _ _ = do return []
 -- Go through all messages, see if you can find the nick as a recipient
-printMessages ((msg@(Envelop {channel = c, from = f,to = t, message = m})):ms) s nick chan =
+printMessages ((msg@(Envelop {typ = tp, channel = c, from = f,to = t, message = m})):ms) s nick chan =
   -- If so forward message to him and inform the sender about the sucessful delivery
   if t == (normalize $ B.unpack nick) && c == B.unpack chan then
     do
