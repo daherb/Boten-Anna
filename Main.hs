@@ -133,6 +133,8 @@ sendResponse response s m =
 
 -- Send a reply to a message
 doResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [Message] -> IO ()
+doResponse s m pre [] post iomessages =
+  helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"?") s m
 doResponse s m pre parsed post iomessages =
     do
       grammar <- pgf
@@ -151,6 +153,8 @@ doResponse s m pre parsed post iomessages =
         "WHO_I_AM" -> helpUser pre response s m ;
         "IMPERTINENT OP" -> impertinent response s m ;
         "IMPERTINENT DEOP" -> impertinent response s m ;
+        "USELESS" -> sendResponse response s m ;
+        _ -> helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"?") s m
         _ -> helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"") s m
   -- | isPrefixOf ( botnick ++ ":" ) pre && findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
   --    let
