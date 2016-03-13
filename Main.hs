@@ -83,7 +83,7 @@ tellUser from post response = return ()
 
 helpUser :: String -> String -> EventFunc
 helpUser pre response s m =
-  if (isPrefixOf ("anna:" ) pre) then
+  if (isPrefixOf (" anna:" ) pre) then
     let nResponse = T.unpack $ T.replace (T.pack "#FROM#") (T.pack (B.unpack nick)) (T.pack response)
     in sendResponse nResponse s m
   else
