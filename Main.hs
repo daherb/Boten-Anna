@@ -141,7 +141,6 @@ doResponse s m pre parsed post iomessages =
       -- linearize the parsed query inro a response
       let response = linearize grammar (mkCId "AnnaEngR") $ head parsed
       let action = linearize grammar (mkCId "AnnaAct") $ head parsed
-      putStrLn (action ++ ": " ++ response)
       case action of 
         "OP" -> opUser post response s m ;
         "DEOP" -> deopUser post response s m ;
@@ -155,60 +154,6 @@ doResponse s m pre parsed post iomessages =
         "IMPERTINENT DEOP" -> impertinent response s m ;
         "USELESS" -> sendResponse response s m ;
         _ -> helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"?") s m
-        _ -> helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"") s m
-  -- | isPrefixOf ( botnick ++ ":" ) pre && findInAbsTrees "tell" parsed && (length ( words post ) >= 2) =
-  --    let
-  --      to = head $ words post
-  --      rcpt = if to == "me" then B.unpack nick else to
-  --      message = unwords $ tail $ words post
-  --    in
-  --      do
-  --        putStrLn "Case 1"
-  --        messages <- readIORef iomessages
-  --        let newMessages = (Envelop { channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
-  --        writeIORef iomessages newMessages
-  --        sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": I will transmit your message to " ++ if to == "me" then "yourself" else rcpt)
-  -- | pre == ( botnick ++ ":" )&& findInAbsTrees "help" parsed &&  (length ( words post ) == 0) = -- (length ( words pre ) == 0) &&
-  --     do
-  --       sendMsg s chan ( B.pack $ ( B.unpack nick ) ++ ": ")
-  -- | findInAbsTrees "ping" parsed && (length ( words post ) == 1 ) =
-  --     let
-  --         to = head $ words post
-  --     in
-  --       do
-  --         sendMsg s chan ( B.pack $ ( if to == "me" then B.unpack nick else to ) ++ ": ping from " ++ ( if to == "me" then "yourself" else B.unpack nick) )
-  -- | findInAbsTrees "please" parsed && findInAbsTrees "deop" parsed && (length ( words post ) == 1 ) =
-  --   let
-  --     ws = words post
-  --   in
-  --     if head ws == "me" then
-  --       sendCmd s (MMode chan (B.pack "-o") (mNick m))
-  --     else
-  --       if head ws == botnick then
-  --         do
-  --           sendMsg s chan (B.pack "How dare you?")
-  --           sendCmd s (MMode chan (B.pack "-o") (mNick m))
-  --       else
-  --         sendCmd s (MMode chan (B.pack "-o") (Just $ B.pack $ head ws))
-  -- | findInAbsTrees "please" parsed && findInAbsTrees "op" parsed && (length ( words post ) == 1 ) =
-  --   let
-  --     ws = words post
-  --   in
-  --     if head ws == "me" then
-  --       sendCmd s (MMode chan (B.pack "+o") (mNick m))
-  --     else
-  --       sendCmd s (MMode chan (B.pack "+o") (Just $ B.pack $ head ws))
-  -- | findInAbsTrees "please" parsed && (findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed ) && (length ( words post ) > 1 ) =
-  --     sendMsg s chan (B.pack "You are a little bit verbose, aren't you?")
-  -- | findInAbsTrees "op" parsed || findInAbsTrees "deop" parsed =
-  --     sendMsg s chan (B.pack "You have to be more polite if I should help you")
-  -- | findInAbsTrees "name" parsed =
-  --     sendMsg s chan (B.pack "Are you talking about me?")
-  -- | findInAbsTrees "bot" parsed =
-  --     sendMsg s chan (B.pack "I am not a bot!")
-  -- | (length ( words pre ) >= 1) && isPrefixOf botnick pre = --(head $ words pre) == (botnick ++ ":") =
-  --     sendMsg s chan (B.pack $ "What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"")
-  -- | otherwise = return ()
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
@@ -256,17 +201,14 @@ onPrivMsg iomessages ionicks s m =
     -- Forward messages and save the remaining ones again
     remaining <- printMessages messages s nick chan
     writeIORef iomessages remaining
-    putStrLn ("###" ++ text)
     -- Try to parse
     case parseWithPGF (normalize text) mpgf (mkCId "AnnaEngQ") [mkType [] (mkCId "Placeholder") []] of
       -- No success
       Left res -> do
-        putStrLn $ show res
         -- Try to generate a response with the whole unparsed message in the pre parameter
         doResponse s m text [] "" iomessages
       -- Parse successful
       Right (pre,parsed,post) -> do
-        putStrLn $ "Pre: " ++ pre ++ " Parse trees: " ++ (show parsed) ++ " Post: " ++ post ++ " EOL"
         -- Try to generate a response with the parse tree and a possible pre and post context
         doResponse s m pre parsed post iomessages
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
@@ -292,7 +234,6 @@ onJoinMsg iomessages ionicklist s m =
     -- Update nick list
     let newNickList = map (\(c,ns) -> if c == chan then (c, S.insert nick ns) else (c,ns)) nickList
     writeIORef ionicklist newNickList
-    putStrLn $ show newNickList
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
@@ -317,7 +258,6 @@ onPartMsg ionicklist s m =
     nickList <- readIORef ionicklist
     let newNickList = map (\(c,ns) -> if c == chan then (c, ns S.\\ (S.singleton nick)) else (c,ns)) nickList
     writeIORef ionicklist newNickList
-    putStrLn $ show newNickList
     where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
@@ -340,7 +280,6 @@ onRawMsg iohandle ionicklist s m =
         -- Update nick list
         let newNickList = map (\(c,ns) -> if c == chan then (c, newNicks) else (c,ns)) nickList
         writeIORef ionicklist newNickList
-        putStrLn $ show newNickList
         return ()
       -- Ignore other messages
       else
