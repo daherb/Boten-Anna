@@ -75,11 +75,36 @@ deopUser post response s m =
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
-pingUser :: B.ByteString -> String -> String -> IO ()
-pingUser from post response = return ();
-
-tellUser :: B.ByteString -> String -> String -> IO ()
-tellUser from post response = return ()
+pingUser :: B.ByteString -> String -> String -> IORef [Message] -> EventFunc
+pingUser from post response iomessages s m = 
+  let
+    to = head $ words post
+    rcpt = if to == "me" then B.unpack nick else to
+  in
+    do
+      messages <- readIORef iomessages
+      let newMessages = (Envelop { typ = Png, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = ""}):messages
+      writeIORef iomessages newMessages
+      let newResponse = T.unpack $ T.replace (T.pack "#TO#") (T.pack rcpt) $ T.replace (T.pack "#FROM#") (T.pack $ B.unpack nick) $ T.pack response
+      sendResponse newResponse s m
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
+  
+tellUser :: B.ByteString -> String -> String -> IORef [Message] -> EventFunc
+tellUser from post response iomessages s m =
+  let
+    to = head $ words post
+    rcpt = if to == "me" then B.unpack nick else to
+    message = unwords $ tail $ words post
+  in
+    do
+      messages <- readIORef iomessages
+      let newMessages = (Envelop { typ = Msg, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
+      writeIORef iomessages newMessages
+      let newResponse = T.unpack $ T.replace (T.pack "#TO#") (T.pack rcpt) $ T.replace (T.pack "#FROM#") (T.pack $ B.unpack nick) $ T.pack response
+      sendResponse newResponse s m
+  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
+        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
 helpUser :: String -> String -> EventFunc
 helpUser pre response s m =
@@ -118,10 +143,10 @@ doResponse s m pre parsed post iomessages =
       case action of 
         "OP" -> opUser post response s m ;
         "DEOP" -> deopUser post response s m ;
-        "PING" -> pingUser nick post response ;
-        "IMPOLITE PING" -> pingUser nick post response ;
-        "TELL" -> tellUser nick post response ;
-        "IMPOLITE TELL" -> tellUser nick post response ;
+        "PING" -> pingUser nick post response iomessages s m ;
+        "IMPOLITE PING" -> pingUser nick post response iomessages s m ;
+        "TELL" -> tellUser nick post response iomessages s m ;
+        "IMPOLITE TELL" -> tellUser nick post response iomessages s m ;
         "HELP" -> helpUser pre response s m ;
         "WHO_I_AM" -> helpUser pre response s m ;
         "IMPERTINENT OP" -> impertinent response s m ;
@@ -191,11 +216,24 @@ printMessages [] _ _ _ = do return []
 printMessages ((msg@(Envelop {typ = tp, channel = c, from = f,to = t, message = m})):ms) s nick chan =
   -- If so forward message to him and inform the sender about the sucessful delivery
   if t == (normalize $ B.unpack nick) && c == B.unpack chan then
-    do
-      sendMsg s chan $ B.pack ((B.unpack nick) ++ ": " ++ f ++ " wants me to tell you " ++ m)
-      sendMsg s chan $ B.pack (f ++ ": Transmitted your message to " ++ (B.unpack nick))
-      rest <- printMessages ms s nick chan
-      return rest
+      if tp == Msg then
+        do
+          grammar <- pgf
+          let msgToRcpt = T.unpack $ T.replace (T.pack "#MESSAGE#") (T.pack m) $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "tellToRcptP"))
+          let msgToSnd = T.unpack $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "tellToSndP"))
+          sendMsg s chan $ B.pack msgToRcpt -- ((B.unpack nick) ++ ": " ++ f ++ " wants me to tell you " ++ m)
+          sendMsg s chan $ B.pack msgToSnd -- (f ++ ": Transmitted your message to " ++ (B.unpack nick))
+          rest <- printMessages ms s nick chan
+          return rest
+      else
+        do
+          grammar <- pgf
+          let pingToRcpt = T.unpack $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "pingToSndP"))
+          let pingToSnd = T.unpack $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "tellToSndP"))
+          sendMsg s chan $ B.pack pingToRcpt
+          sendMsg s chan $ B.pack pingToSnd
+          rest <- printMessages ms s nick chan
+          return rest
    -- Otherwise continue looking
    else
      do
