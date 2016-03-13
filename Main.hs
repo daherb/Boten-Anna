@@ -1,3 +1,7 @@
+{- TODO:
+   - completely remove robust parsing
+   - put "me" into the grammar
+-}
 import Network.SimpleIRC
 import Data.Maybe
 import PGFParse
