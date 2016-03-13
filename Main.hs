@@ -20,7 +20,7 @@ version = "0.3"
 botNick = "annaisnotabot"
 channelNames = ["#botenannatest","#botenannatest1"]
 debugMsg = False
-logging = True
+logging = False
 logName = "boten-anna.log"
 pgf = readPGF "Anna.pgf"
 
