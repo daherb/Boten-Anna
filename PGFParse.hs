@@ -18,10 +18,11 @@ findInAbsTrees needle (hd:tl) =
 findInAbsTree :: String -> Expr -> Bool
 findInAbsTree needle tree = isInfixOf needle (show tree)
   
-
+parseLoop :: [Char] -> String -> [Char] -> PGF -> Language -> [Type] -> Either ParseOutput ([Char], [Tree], [Char])
 parseLoop prel l postl pgf lang open =
   let
-    parseRes = parseWithRecovery pgf lang (startCat pgf) open (Just 4) l
+--    parseRes = parseWithRecovery pgf lang (startCat pgf) open (Just 4) l
+    parseRes = parse_ pgf lang (startCat pgf) (Just 4) l
     parseOutput = fst parseRes
   in
     case parseOutput of
@@ -37,7 +38,7 @@ parseLoop prel l postl pgf lang open =
                      else postl
         in
           parseLoop newprel newl newpostl pgf lang open
-      _ -> Left parseOutput
+      _ -> Right (prel ++ l ++ postl, [] , []);
 
 parseWithPGF l pgf lang open =
   parseLoop "" l "" pgf lang open
