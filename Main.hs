@@ -254,7 +254,7 @@ onPrivMsg iomessages ionicks s m =
     writeIORef iomessages remaining
     putStrLn ("###" ++ text)
     -- Try to parse
-    case parseWithPGF (normalize text) mpgf (mkCId "EngQ") [mkType [] (mkCId "Placeholder") []] of
+    case parseWithPGF (normalize text) mpgf (mkCId "AnnaEngQ") [mkType [] (mkCId "Placeholder") []] of
       -- No success
       Left res -> do
         putStrLn $ show res
