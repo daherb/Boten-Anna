@@ -14,6 +14,7 @@ abstract Anna = {
     Bot ;
     Placeholder ;
   fun
+    -- Kind of lexicon
     bot : Bot ;
     anna : Name ;
     canyou : Command -> Command ;
@@ -26,9 +27,11 @@ abstract Anna = {
     ping : Ping ; 
     commandS : Command -> S ;
     commentS : Comment -> S ;
+    -- Possible Comments like mentioning the word bot or the name
     botC : Bot -> Comment ;
     nameC : Name -> Comment ;
     whoareyouC : Comment ;
+    -- Possible commands like tell, (de)op, help, and ping
     tellC : Tell -> Placeholder -> Command ;
     opC : Op -> Placeholder -> Command ;
     deopC : Deop -> Placeholder -> Command ;
@@ -36,6 +39,7 @@ abstract Anna = {
     pingC : Ping -> Placeholder -> Command ;
     nick : Placeholder;
     nameP : Name -> Placeholder;
+    -- Other phrases
     verboseP : S ; -- When more parameters than expected given
     tellToRcptP : S ; -- Transmit the message
     tellToSndP : S ; -- Confirm transmission
