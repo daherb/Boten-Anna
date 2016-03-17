@@ -1,8 +1,10 @@
-module PGFParse (parseWithPGF,findInAbsTrees) where
+module PGFParse (parseWithPGF,parseOpenWithPGF,findInAbsTrees) where
 import PGF
+import PGF.Internal
 import Data.Maybe
 import Data.Bool
 import Data.List
+import Debug.Trace
 
 instance Show ParseOutput where
   show (ParseFailed i) = "Parse failed at " ++ show i
@@ -16,17 +18,31 @@ findInAbsTrees needle (hd:tl) =
   findInAbsTree needle hd || findInAbsTrees needle tl
   
 findInAbsTree :: String -> Expr -> Bool
-findInAbsTree needle tree = isInfixOf needle (show tree)
-  
-parseLoop :: [Char] -> String -> [Char] -> PGF -> Language -> [Type] -> Either ParseOutput ([Char], [Tree], [Char])
+findInAbsTree needle (EFun name) = name == (mkCId needle)
+findInAbsTree needle (EApp t1 t2) = findInAbsTree needle t1 || findInAbsTree needle t2
+
+matchStrings :: String -> String -> [(String,String)]
+matchStrings s1 s2 =
+  let
+    matchWordLists [] _ = []
+    matchWordLists _ [] = []
+    matchWordLists (a:arest) (b:brest) = if a == b then matchWordLists arest brest else nub $ (a,b):(matchWordLists arest brest)
+  in
+    matchWordLists (words s1) (words s2)
+                                                  
+parseLoop :: [Char] -> String -> [Char] -> PGF -> Language -> [Type] -> Either ParseOutput ([Char], [Tree], [Char],[(String,String)])
 parseLoop prel l postl pgf lang open =
   let
---    parseRes = parseWithRecovery pgf lang (startCat pgf) open (Just 4) l
-    parseRes = parse_ pgf lang (startCat pgf) (Just 4) l
+    parseRes = parseWithRecovery pgf lang (startCat pgf) open (Just 4) l
     parseOutput = fst parseRes
   in
     case parseOutput of
-      (ParseOk ts) -> Right (prel,ts,postl)
+      (ParseOk ts) ->
+        let
+          linStrs = map (linearize pgf lang) ts
+          context = concat $ map (matchStrings l) linStrs
+          in
+        trace "PARSEOK" $ Right (prel,ts,postl,context)
       (ParseFailed i) ->
         let
           ws = words l
@@ -37,20 +53,25 @@ parseLoop prel l postl pgf lang open =
           newpostl = if i > 1 then (unwords $ drop (i - 1) $ words l) ++ postl
                      else postl
         in
-          parseLoop newprel newl newpostl pgf lang open
-      _ -> Right (prel ++ l ++ postl, [] , []);
+          trace (show i) $ parseLoop newprel newl newpostl pgf lang open
+      _ -> Right (prel ++ " " ++ l ++ " " ++ postl, [] , [], []);
 
-parseWithPGF l pgf lang open =
-  parseLoop "" l "" pgf lang open
+parseWithPGF l pgf lang =
+  parseLoop "" l "" pgf lang []
   
-readLoop pgf =
+parseOpenWithPGF l pgf lang open =
+  parseLoop "" l "" pgf lang open
+
+readLoop pgf lang = readLoopOpen pgf lang []
+readLoopOpen pgf lang open =
     do
       l <- getLine
-      either (\p -> do putStrLn $ "Result: " ++ show p) (\(preB,trees,postB) -> putStrLn $ "Pre: " ++ preB ++ "\nTrees:\n" ++ (unlines $ map show trees) ++ "Post: " ++ postB ++ "\n") (parseWithPGF l pgf (head $ languages pgf) [])
-      readLoop pgf
+      either (\p -> do putStrLn $ "Result: " ++ show p) (\(preB,trees,postB,context) -> putStrLn $ "Pre: " ++ preB ++ "\nTrees:\n" ++ (unlines $ map show trees) ++ "Post: " ++ postB ++ "Context: " ++ show context ++ "\n") (parseOpenWithPGF l pgf lang open)
+      readLoopOpen pgf lang open
 main =
     do
       pgf <- readPGF "Anna.pgf"
-      readLoop pgf
+--      readLoopOpen pgf (head $ languages pgf) [(fromJust $ readType "Placeholder")]
+      readLoopOpen pgf (mkCId "AnnaEngQ") [(fromJust $ readType "Placeholder")]
     
     
