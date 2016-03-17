@@ -39,7 +39,7 @@ maintainer:          sonofchaos@gmx.de
 
 category:            Network
 
-build-type:          Simple
+build-type:          Custom
 
 -- Extra files to be distributed with the package, such as examples or a 
 -- README.
