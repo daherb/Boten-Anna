@@ -16,6 +16,10 @@ concrete AnnaEngQ of Anna = open Prelude in {
       Sg => table { Nom => "anna" ; Gen => "annas" } ;
       Pl => \\_ => nonExist
       };
+    me = table {
+      Sg => table { Nom => "me" ; Gen => "my" } ;
+      Pl => table { Nom => "we" ; Gen => "our" }
+      } ;
     canyou c = c ** { pre1 = "can you" | "could you" } ;
     name n c = c ** { pre1 = n ! Sg ! Nom ++ c.pre1 } ;
     please c = c ** { pre2 = "please" } ;
@@ -39,7 +43,7 @@ concrete AnnaEngQ of Anna = open Prelude in {
     deopC c p = c ** { mid = c.mid ++ p.s } ;
     helpC c = c ;
     pingC c p = c ** { mid = c.mid ++ p.s } ;
-    nick = ss "" ;
+    nick = ss "#NICK#" ;
     nameP n = ss (n ! Sg ! Nom );
     verboseP = nonExist ;
     tellToRcptP = nonExist ;

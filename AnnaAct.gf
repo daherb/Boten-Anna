@@ -17,6 +17,7 @@ concrete AnnaAct of Anna = open Prelude in {
   lin
     bot = { bot = True } ;
     anna = { name = True } ;
+    me = { name = False } ;
     canyou c = c ;
     name n c = n ** c ;
     please c = c ** { polite = True } ;

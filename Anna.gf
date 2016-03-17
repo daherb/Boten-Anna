@@ -17,6 +17,7 @@ abstract Anna = {
     -- Kind of lexicon
     bot : Bot ;
     anna : Name ;
+    me : Name ;
     canyou : Command -> Command ;
     name : Name -> Command -> Command ;
     please : Command -> Command ;
