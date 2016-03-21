@@ -224,7 +224,8 @@ onJoinMsg iomessages ionicklist s m =
     -- Check if it our own JOIN
     if (nick == B.pack botNick) then
       -- Yes -> Get the nicks in the channel
-      sendRaw s (B.pack "NAMES channel")
+      do
+        sendRaw s (B.pack "NAMES channel")
     else
       -- No -> try to give operator rights to user
       sendCmd s (MMode chan (B.pack "+o") (Just nick))
@@ -271,10 +272,10 @@ onRawMsg iohandle ionicklist s m =
     -- If enabled write the message to the log
     when logging $ hPutStrLn handle $ show m
     -- If message is of code 353 see RFC2812 RPL_NAMREPLY
-    if ((B.isInfixOf . B.pack) " 353 " $ mMsg m) then
+    if (mCode m == B.pack "353") then
       do
-        -- Remove the channel name, the space and the colon and then split at spaces
-        let nicks = B.words $ B.drop (B.length chan + 2) $ snd $ B.breakSubstring chan $ mMsg m
+        -- Get the nicks list, skip colon and split on spaces
+        let nicks = B.words $ B.drop 1 $ head $ tail $ fromJust $ mOther m
         -- Remove modifiers like @ for Op
         let newNicks = S.fromList $ map (\n -> if (elem . B.head) n "@+" then B.drop 1 n else n) nicks
         -- Update nick list
@@ -284,7 +285,7 @@ onRawMsg iohandle ionicklist s m =
       -- Ignore other messages
       else
         return ()
-    where chan = if isJust (mChan m) then fromJust (mChan m) else (mMsg m)
+    where chan = head $ fromJust (mOther m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
 -- The main function
