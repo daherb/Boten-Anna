@@ -36,7 +36,7 @@ concrete AnnaEngR of Anna = open Prelude in {
 	<TellC | PingC,Anna,_> => "that's rather useless, isn't it?" ;
 	<TellC,_,_> => "#FROM#: i will tell #TO#" ;
 	<PingC,_,_> => "#FROM#: i will ping #TO# for you" ;
-	<HelpC,_,_> => "#FROM#: i listen for possible commands in all conversations in this channel, so you don't have to talk to me directly. I can ''tell'' <someone> <something> or i can ''ping'' <someone> from you. if i am a channel operator i can ''op'' or ''deop'' <someone> if you ask politely. and sometime i am just stupid and annoying." ;
+	<HelpC,_,_> => "#FROM#: i listen for possible commands in all conversations in this channel, so you don't have to talk to me directly. I can *tell* <someone> <something> or i can *ping* <someone> from you. if i am a channel operator i can *op* or *deop* <someone> if you ask politely. and sometime i am just stupid and annoying." ;
 	_ => nonExist
       } ;
     commentS c =
