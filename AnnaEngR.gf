@@ -62,6 +62,6 @@ concrete AnnaEngR of Anna = open Prelude in {
     tellToSndP = "#FROM#: transmitted your message to #TO#" ;
     pingToRcptP = "#TO#: #FROM# wants me to ping you" ;
     pingToSndP = "#FROM#: pinged #TO# for you" ;
-    accomplishP = "What do you want to accomplish by saying: \"#MESSAGE#\"" ;
+    accomplishP = "what do you want to accomplish by saying: \"#MESSAGE#\"?" ;
 }
  
