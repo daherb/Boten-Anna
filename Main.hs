@@ -42,6 +42,7 @@ normalize :: String -> String
 -- Replace punctuation by spaces and make everything lower case
 normalize = map (\c -> if elem c ".,!?" then ' ' else toLower c)
 
+-- Replace a set of substrings
 replaceInStr :: [(String,String)] -> String -> (String,[(String,String)])
 replaceInStr [] src = (src,[])
 replaceInStr ((pattern,rplc):rest) src =
@@ -51,8 +52,10 @@ replaceInStr ((pattern,rplc):rest) src =
   in
     (newReplaced,newContext)
 
+-- Creates a EFun Expr from a string
 mkFun :: String -> Expr
 mkFun = EFun . mkCId
+-- Extracts a receipient from parse, context and/or nick
 getRcpt :: [Expr] -> [(String,String)] -> B.ByteString -> String
 getRcpt parsed context nick =
   if findInAbsTrees "me" parsed
@@ -60,6 +63,7 @@ getRcpt parsed context nick =
        -- Find first meta
   else fst $ head $ filter (\(c1,c2) -> head c2 == '?' ) context
 
+-- (de)ops a user
 changeMode :: String -> [Expr] -> String -> [(String,String)] -> String -> EventFunc
 changeMode mode parsed post context response s m =
   let
@@ -80,14 +84,17 @@ changeMode mode parsed post context response s m =
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
+-- ops a user
 opUser :: [Expr] -> String -> [(String,String)] -> String -> EventFunc
 opUser parsed post context response s m =
   changeMode "+o" parsed post context response s m
 
+-- deops a user
 deopUser :: [Expr] -> String -> [(String,String)] -> String -> EventFunc
 deopUser parsed post context response s m =
   changeMode "-o" parsed post context response s m
 
+-- pings a user
 pingUser :: B.ByteString -> [Expr] -> String -> [(String,String)] -> String -> IORef [Message] -> EventFunc
 pingUser from parsed post context response iomessages s m = 
   let
@@ -131,6 +138,7 @@ tellUser from parsed post context response iomessages s m =
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
+-- gives a help message
 helpUser :: String -> String -> EventFunc
 helpUser pre response s m =
   if (isPrefixOf (" anna:" ) pre) then
@@ -142,14 +150,17 @@ helpUser pre response s m =
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
+-- reponds to impertinence 
 impertinent :: String -> EventFunc
 impertinent response s m =
   do
     sendCmd s (MMode chan (B.pack "-o") (mNick m))
+    -- "how dare you?"
     sendResponse response s m
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
+-- send a general response
 sendResponse :: String -> EventFunc
 sendResponse response s m =
   do
