@@ -19,7 +19,7 @@ import Debug.Trace
 
 
 -- Global config constants
-version = "0.3"
+version = "0.4"
 botNick = "annaisnotabot"
 channelNames = ["#botenannatest","#botenannatest1"]
 debugMsg = False
