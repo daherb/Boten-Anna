@@ -42,66 +42,91 @@ normalize :: String -> String
 -- Replace punctuation by spaces and make everything lower case
 normalize = map (\c -> if elem c ".,!?" then ' ' else toLower c)
 
-opUser :: String -> String -> EventFunc
-opUser post response s m =
+replaceInStr :: [(String,String)] -> String -> (String,[(String,String)])
+replaceInStr [] src = (src,[])
+replaceInStr ((pattern,rplc):rest) src =
+  let (replaced,context) = replaceInStr rest src
+      newContext = if isInfixOf pattern replaced then ((pattern,rplc):context) else context
+      newReplaced = T.unpack $ T.replace (T.pack pattern) (T.pack $ rplc) $ T.pack $ replaced
+  in
+    (newReplaced,newContext)
+
+mkFun :: String -> Expr
+mkFun = EFun . mkCId
+getRcpt :: [Expr] -> [(String,String)] -> B.ByteString -> String
+getRcpt parsed context nick =
+  if findInAbsTrees "me" parsed
+  then B.unpack nick
+       -- Find first meta
+  else fst $ head $ filter (\(c1,c2) -> head c2 == '?' ) context
+
+changeMode :: String -> [Expr] -> String -> [(String,String)] -> String -> EventFunc
+changeMode mode parsed post context response s m =
   let
       ws = words post
+      rcpt = getRcpt parsed context nick
     in
-      if length ws == 1 then
-        do 
-          if head ws == "me" then
-            sendCmd s (MMode chan (B.pack "+o") (mNick m))
-          else
-            sendCmd s (MMode chan (B.pack "+o") (Just $ B.pack $ head ws))          
+      if length ws == 0 then
+        do
+          sendCmd s (MMode chan (B.pack mode) (Just $ B.pack $ rcpt))
+          -- "you're welcome"
           sendResponse response s m
       else
-        sendResponse "You are a little bit verbose, aren't you?" s m
-  where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
-        nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
-deopUser :: String -> String -> EventFunc
-deopUser post response s m =
-    let
-      ws = words post
-    in
-      if length ws == 1 then
-        do 
-          if head ws == "me" then
-            sendCmd s (MMode chan (B.pack "-o") (mNick m))
-          else
-            sendCmd s (MMode chan (B.pack "-o") (Just $ B.pack $ head ws))
+        do
+          grammar <- pgf
+	  -- "You are a little bit verbose, aren't you?"
+	  let response = linearize grammar (mkCId "AnnaEngR") (mkFun "verboseP")
           sendResponse response s m
-      else
-        sendResponse "You are a little bit verbose, aren't you?" s m
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
-pingUser :: B.ByteString -> String -> String -> IORef [Message] -> EventFunc
-pingUser from post response iomessages s m = 
+opUser :: [Expr] -> String -> [(String,String)] -> String -> EventFunc
+opUser parsed post context response s m =
+  changeMode "+o" parsed post context response s m
+
+deopUser :: [Expr] -> String -> [(String,String)] -> String -> EventFunc
+deopUser parsed post context response s m =
+  changeMode "-o" parsed post context response s m
+
+pingUser :: B.ByteString -> [Expr] -> String -> [(String,String)] -> String -> IORef [Message] -> EventFunc
+pingUser from parsed post context response iomessages s m = 
   let
-    to = head $ words post
-    rcpt = if to == "me" then B.unpack nick else to
+    ws = words post
+    rcpt = getRcpt parsed context nick
   in
-    do
-      messages <- readIORef iomessages
-      let newMessages = (Envelop { typ = Png, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = ""}):messages
-      writeIORef iomessages newMessages
-      let newResponse = T.unpack $ T.replace (T.pack "#TO#") (T.pack rcpt) $ T.replace (T.pack "#FROM#") (T.pack $ B.unpack nick) $ T.pack response
-      sendResponse newResponse s m
+    if length ws == 0 then
+      do
+        putStrLn $ "RCPT: " ++ rcpt
+        messages <- readIORef iomessages
+        let newMessages = (Envelop { typ = Png, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = ""}):messages
+        writeIORef iomessages newMessages
+        -- "#FROM#: i will ping #TO# for you"
+        let newResponse = fst $ replaceInStr [("#TO#",rcpt),("#FROM#", B.unpack nick)] response
+        sendResponse newResponse s m
+    else
+        do
+          grammar <- pgf
+	  -- "You are a little bit verbose, aren't you?"
+	  let response = linearize grammar (mkCId "AnnaEngR") (mkFun "verboseP")
+          sendResponse response s m
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
-  
-tellUser :: B.ByteString -> String -> String -> IORef [Message] -> EventFunc
-tellUser from post response iomessages s m =
+
+-- forwards a message to a user
+tellUser :: B.ByteString -> [Expr] -> String -> [(String,String)] -> String -> IORef [Message] -> EventFunc
+tellUser from parsed post context response iomessages s m =
   let
-    to = head $ words post
-    rcpt = if to == "me" then B.unpack nick else to
-    message = unwords $ tail $ words post
+    ws = words post
+    rcpt = getRcpt parsed context nick
+    -- Only skip name if it is not me
+    message = post
   in
     do
       messages <- readIORef iomessages
       let newMessages = (Envelop { typ = Msg, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
       writeIORef iomessages newMessages
-      let newResponse = T.unpack $ T.replace (T.pack "#TO#") (T.pack rcpt) $ T.replace (T.pack "#FROM#") (T.pack $ B.unpack nick) $ T.pack response
+      -- "#FROM#: i will tell #TO#"
+      let newResponse = fst $ replaceInStr [("#TO#", rcpt), ("#FROM#", B.unpack nick)] response
       sendResponse newResponse s m
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
@@ -109,7 +134,8 @@ tellUser from post response iomessages s m =
 helpUser :: String -> String -> EventFunc
 helpUser pre response s m =
   if (isPrefixOf (" anna:" ) pre) then
-    let nResponse = T.unpack $ T.replace (T.pack "#FROM#") (T.pack (B.unpack nick)) (T.pack response)
+    --"#FROM#: i listen for possible commands in all conversations in this channel, so you don't have to talk to me directly. I can ''tell'' <someone> <something> or i can ''ping'' <someone> from you. if i am a channel operator i can ''op'' or ''deop'' <someone> if you ask politely. and sometime i am just stupid and annoying."
+    let nResponse = fst $ replaceInStr [("#FROM#", B.unpack nick)] response
     in sendResponse nResponse s m
   else
     return ()
@@ -131,29 +157,41 @@ sendResponse response s m =
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
--- Send a reply to a message
-doResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> IORef [Message] -> IO ()
-doResponse s m pre [] post iomessages =
-  helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"?") s m
-doResponse s m pre parsed post iomessages =
+-- creates a reply to a message
+doResponse :: MIrc -> IrcMessage -> String -> [Expr] -> String -> [(String,String)] -> IORef [Message] -> IO ()
+doResponse s m pre [] post context iomessages =
+  do
+    grammar <- pgf
+    -- "What do you want to accomplish by saying: \"#MESSAGE#\""
+    let response = linearize grammar (mkCId "AnnaEngR") (mkFun "accomplishP")
+    let message = unwords $ tail $ words pre
+    let newResponse = fst $ replaceInStr [("#MESSAGE#",message)] response
+    trace "NO PARSE" helpUser pre newResponse s m
+    
+doResponse s m pre parsed post context iomessages =
     do
       grammar <- pgf
       -- linearize the parsed query inro a response
       let response = linearize grammar (mkCId "AnnaEngR") $ head parsed
       let action = linearize grammar (mkCId "AnnaAct") $ head parsed
+      putStrLn $ "ACTION: " ++ action
       case action of 
-        "OP" -> opUser post response s m ;
-        "DEOP" -> deopUser post response s m ;
-        "PING" -> pingUser nick post response iomessages s m ;
-        "IMPOLITE PING" -> pingUser nick post response iomessages s m ;
-        "TELL" -> tellUser nick post response iomessages s m ;
-        "IMPOLITE TELL" -> tellUser nick post response iomessages s m ;
+        "OP" -> opUser parsed post context response s m ;
+        "DEOP" -> deopUser parsed post context response s m ;
+        "PING" -> pingUser nick parsed post context response iomessages s m ;
+        "IMPOLITE PING" -> pingUser nick parsed post context response iomessages s m ;
+        "TELL" -> tellUser nick parsed post context response iomessages s m ;
+        "IMPOLITE TELL" -> tellUser nick parsed post context response iomessages s m ;
         "HELP" -> helpUser pre response s m ;
         "WHO_I_AM" -> helpUser pre response s m ;
         "IMPERTINENT OP" -> impertinent response s m ;
         "IMPERTINENT DEOP" -> impertinent response s m ;
+        "IMPOLITE OP" -> sendResponse response s m ;
+        "IMPOLITE DEOP" -> sendResponse response s m ;
         "USELESS" -> sendResponse response s m ;
-        _ -> helpUser pre ("What do you want to accomplish by saying: \"" ++ ( unwords $ tail $ words pre ) ++ "\"?") s m
+        "ABOUT_ME" -> sendResponse response s m ;
+        "NO_BOT" -> sendResponse response s m ;
+        _ -> trace "LAST CASE " $ doResponse s m pre [] post [] iomessages 
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
@@ -168,17 +206,21 @@ printMessages ((msg@(Envelop {typ = tp, channel = c, from = f,to = t, message = 
       if tp == Msg then
         do
           grammar <- pgf
-          let msgToRcpt = T.unpack $ T.replace (T.pack "#MESSAGE#") (T.pack m) $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "tellToRcptP"))
-          let msgToSnd = T.unpack $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "tellToSndP"))
-          sendMsg s chan $ B.pack msgToRcpt -- ((B.unpack nick) ++ ": " ++ f ++ " wants me to tell you " ++ m)
-          sendMsg s chan $ B.pack msgToSnd -- (f ++ ": Transmitted your message to " ++ (B.unpack nick))
+          -- "#TO#: #FROM# wants me to tell you #MESSAGE#"
+          let msgToRcpt = fst $ replaceInStr [("#MESSAGE#", m), ("#TO#", t), ("#FROM#", f)] $ linearize grammar (mkCId "AnnaEngR") $ mkFun "tellToRcptP"
+          -- "#FROM#: transmitted your message to #TO#"
+          let msgToSnd = fst $ replaceInStr [("#TO#", t), ("#FROM#", f)] $ linearize grammar (mkCId "AnnaEngR") $ mkFun "tellToSndP"
+          sendMsg s chan $ B.pack msgToRcpt
+          sendMsg s chan $ B.pack msgToSnd
           rest <- printMessages ms s nick chan
           return rest
       else
         do
           grammar <- pgf
-          let pingToRcpt = T.unpack $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "pingToSndP"))
-          let pingToSnd = T.unpack $ T.replace (T.pack "#TO#") (T.pack t) $ T.replace (T.pack "#FROM#") (T.pack f) $ T.pack $ linearize grammar (mkCId "AnnaEngR") (EFun (mkCId "tellToSndP"))
+          -- "#TO#: #FROM# wants me to ping you"
+          let pingToRcpt = fst $ replaceInStr [("#TO#", t), ("#FROM#", f)] $ linearize grammar (mkCId "AnnaEngR") $ mkFun "pingToRcptP"
+          -- "#FROM#: pinged #TO# for you"
+          let pingToSnd = fst $ replaceInStr [("#TO#", t), ("#FROM#", f)] $ linearize grammar (mkCId "AnnaEngR") $ mkFun "pingToSndP"
           sendMsg s chan $ B.pack pingToRcpt
           sendMsg s chan $ B.pack pingToSnd
           rest <- printMessages ms s nick chan
@@ -196,21 +238,17 @@ onPrivMsg iomessages ionicks s m =
     -- Get constants and parameters
     mpgf <- pgf
     messages <- readIORef iomessages
+    nickList <- readIORef ionicks
     -- Get message text and replace the bot name by the name used in grammar
-    let text = T.unpack $ T.replace (T.pack botNick) (T.pack "anna") (T.pack $ B.unpack $ mMsg m)
+    let replaceList = [(botNick,"anna")] -- ++ (S.toList $ S.map (\n -> (B.unpack n,"#NICK#")) $ snd $ head $ filter (\(c,_) -> c == chan) nickList)
+    let (text,context) = replaceInStr replaceList $ normalize $ B.unpack $ mMsg m
     -- Forward messages and save the remaining ones again
     remaining <- printMessages messages s nick chan
     writeIORef iomessages remaining
     -- Try to parse
-    case parseWithPGF (normalize text) mpgf (mkCId "AnnaEngQ") [mkType [] (mkCId "Placeholder") []] of
-      -- No success
-      Left res -> do
-        -- Try to generate a response with the whole unparsed message in the pre parameter
-        doResponse s m text [] "" iomessages
-      -- Parse successful
-      Right (pre,parsed,post) -> do
-        -- Try to generate a response with the parse tree and a possible pre and post context
-        doResponse s m pre parsed post iomessages
+    let (pre,parsed,post,ncontext) = parseOpenWithPGF text mpgf (mkCId "AnnaEngQ") [(fromJust $ readType "Placeholder")]
+    putStrLn $ "pre: " ++ pre ++ " parsed: " ++ show parsed ++ " post: " ++ post ++ " context: " ++ show ncontext
+    doResponse s m pre parsed post (context ++ ncontext) iomessages
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
