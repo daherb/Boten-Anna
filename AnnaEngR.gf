@@ -30,7 +30,7 @@ concrete AnnaEngR of Anna = open Prelude in {
     ping = { command = PingC } ;
     commandS c = "" ++
       case <c.command,c.name,c.polite> of {
-	<OpC | DeopC,_,False> => "you have to be more polite if I should help you" ;
+	<OpC | DeopC,_,False> => "you have to be more polite if i should help you" ;
 	<OpC | DeopC,Anna,_> => "how dare you?" ;
 	<OpC | DeopC,_,True> => "you're welcome" ;
 	<TellC | PingC,Anna,_> => "that's rather useless, isn't it?" ;
