@@ -107,7 +107,7 @@ pingUser from parsed post context response iomessages s m =
   in
     if length ws == 0 then
       do
-        putStrLn $ "RCPT: " ++ rcpt
+        --putStrLn $ "RCPT: " ++ rcpt
         messages <- readIORef iomessages
         let newMessages = (Envelop { typ = Png, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = ""}):messages
         writeIORef iomessages newMessages
@@ -181,7 +181,8 @@ doResponse s m pre [] post context iomessages =
     let response = linearize grammar (mkCId "AnnaEngR") (mkFun "accomplishP")
     let message = unwords $ tail $ words pre
     let newResponse = fst $ replaceInStr [("#MESSAGE#",message)] response
-    trace "NO PARSE" helpUser pre newResponse s m
+    --trace "NO PARSE"
+    helpUser pre newResponse s m
     
 doResponse s m pre parsed post context iomessages =
     do
@@ -189,7 +190,7 @@ doResponse s m pre parsed post context iomessages =
       -- linearize the parsed query inro a response
       let response = linearize grammar (mkCId "AnnaEngR") $ head parsed
       let action = linearize grammar (mkCId "AnnaAct") $ head parsed
-      putStrLn $ "ACTION: " ++ action
+      --putStrLn $ "ACTION: " ++ action
       case action of 
         "OP" -> opUser parsed post context response s m ;
         "DEOP" -> deopUser parsed post context response s m ;
@@ -206,7 +207,7 @@ doResponse s m pre parsed post context iomessages =
         "USELESS" -> sendResponse response s m ;
         "ABOUT_ME" -> sendResponse response s m ;
         "NO_BOT" -> sendResponse response s m ;
-        _ -> trace "LAST CASE " $ doResponse s m pre [] post [] iomessages 
+        _ -> doResponse s m pre [] post [] iomessages -- trace "LAST CASE " $ 
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
@@ -262,7 +263,7 @@ onPrivMsg iomessages ionicks s m =
     writeIORef iomessages remaining
     -- Try to parse
     let (pre,parsed,post,ncontext) = parseOpenWithPGF text mpgf (mkCId "AnnaEngQ") [(fromJust $ readType "Placeholder")]
-    putStrLn $ "pre: " ++ pre ++ " parsed: " ++ show parsed ++ " post: " ++ post ++ " context: " ++ show ncontext
+    --putStrLn $ "pre: " ++ pre ++ " parsed: " ++ show parsed ++ " post: " ++ post ++ " context: " ++ show ncontext
     doResponse s m pre parsed post (context ++ ncontext) iomessages
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
