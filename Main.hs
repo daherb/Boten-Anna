@@ -3,6 +3,7 @@
    - put "me" into the grammar
 -}
 import Network.SimpleIRC
+--import FakeIO -- can replace the irc interface, e.g. for testing
 import Data.Maybe
 import PGFParse
 import PGF
