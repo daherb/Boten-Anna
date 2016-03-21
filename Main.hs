@@ -7,6 +7,7 @@ import Network.SimpleIRC
 import Data.Maybe
 import PGFParse
 import PGF
+import PGF.Internal
 import Data.Char
 import qualified Data.ByteString.Char8 as B
 import Data.IORef
@@ -15,6 +16,8 @@ import qualified Data.Set as S
 import System.IO
 import Control.Monad
 import qualified Data.Text as T
+import Debug.Trace
+
 
 -- Global config constants
 version = "0.3"
@@ -56,6 +59,7 @@ replaceInStr ((pattern,rplc):rest) src =
 -- Creates a EFun Expr from a string
 mkFun :: String -> Expr
 mkFun = EFun . mkCId
+
 -- Extracts a receipient from parse, context and/or nick
 getRcpt :: [Expr] -> [(String,String)] -> B.ByteString -> String
 getRcpt parsed context nick =
