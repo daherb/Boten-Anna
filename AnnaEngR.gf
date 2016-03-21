@@ -1,7 +1,7 @@
 concrete AnnaEngR of Anna = open Prelude in {
   param
     Cmd = DeopC | HelpC | OpC | PingC | TellC ;
-    Nme = Anna | Me | Plchldr | None ;
+    Nme = Plchldr | Anna | Me | None ;
   oper
     BotT : Type = { bot : Bool } ;
     NameT : Type = { name : Nme } ;
