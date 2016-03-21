@@ -1,6 +1,5 @@
 {- TODO:
-   - completely remove robust parsing
-   - put "me" into the grammar
+ - protocol abstraction???
 -}
 import Network.SimpleIRC
 --import FakeIO -- can replace the irc interface, e.g. for testing
