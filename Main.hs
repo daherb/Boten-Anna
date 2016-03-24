@@ -107,7 +107,7 @@ pingUser from parsed post context response iomessages s m =
   in
     if length ws == 0 then
       do
-        --putStrLn $ "RCPT: " ++ rcpt
+        when debugMsg $ putStrLn $ "RCPT: " ++ rcpt
         messages <- readIORef iomessages
         let newMessages = (Envelop { typ = Png, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = ""}):messages
         writeIORef iomessages newMessages
@@ -133,6 +133,7 @@ tellUser from parsed post context response iomessages s m =
     message = post
   in
     do
+      when debugMsg $ putStrLn $ "RCPT: " ++ rcpt
       messages <- readIORef iomessages
       let newMessages = (Envelop { typ = Msg, channel = B.unpack chan, from = B.unpack nick, to = rcpt, message = message}):messages
       writeIORef iomessages newMessages
@@ -190,7 +191,7 @@ doResponse s m pre parsed post context iomessages =
       -- linearize the parsed query inro a response
       let response = linearize grammar (mkCId "AnnaEngR") $ head parsed
       let action = linearize grammar (mkCId "AnnaAct") $ head parsed
-      --putStrLn $ "ACTION: " ++ action
+      when debugMsg $ putStrLn $ "ACTION: " ++ action
       case action of 
         "OP" -> opUser parsed post context response s m ;
         "DEOP" -> deopUser parsed post context response s m ;
@@ -263,7 +264,7 @@ onPrivMsg iomessages ionicks s m =
     writeIORef iomessages remaining
     -- Try to parse
     let (pre,parsed,post,ncontext) = parseOpenWithPGF text mpgf (mkCId "AnnaEngQ") [(fromJust $ readType "Placeholder")]
-    --putStrLn $ "pre: " ++ pre ++ " parsed: " ++ show parsed ++ " post: " ++ post ++ " context: " ++ show ncontext
+    when debugMsg $ putStrLn $ "pre: " ++ pre ++ " parsed: " ++ show parsed ++ " post: " ++ post ++ " context: " ++ show ncontext
     doResponse s m pre parsed post (context ++ ncontext) iomessages
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
