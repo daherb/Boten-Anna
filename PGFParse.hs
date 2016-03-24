@@ -84,13 +84,11 @@ readLoop pgf lang = readLoopOpen pgf lang []
 readLoopOpen pgf lang open =
     do
       l <- getLine
-      -- either (\p -> do putStrLn $ "Result: " ++ show p)
       (\(preB,trees,postB,context) -> putStrLn $ "Pre: " ++ preB ++ "\nTrees:\n" ++ (unlines $ map show trees) ++ "Post: " ++ postB ++ "Context: " ++ show context ++ "\n") (parseOpenWithPGF l pgf lang open)
       readLoopOpen pgf lang open
 main =
     do
       pgf <- readPGF "Anna.pgf"
---      readLoopOpen pgf (head $ languages pgf) [(fromJust $ readType "Placeholder")]
       readLoopOpen pgf (mkCId "AnnaEngQ") [(fromJust $ readType "Placeholder")]
     
     
