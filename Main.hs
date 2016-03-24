@@ -129,7 +129,6 @@ tellUser from parsed post context response iomessages s m =
   let
     ws = words post
     rcpt = getRcpt parsed context nick
-    -- Only skip name if it is not me
     message = post
   in
     do
