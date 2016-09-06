@@ -1,3 +1,4 @@
+module Main where
 {- TODO:
  - protocol abstraction???
 -}
@@ -16,16 +17,9 @@ import System.IO
 import Control.Monad
 import qualified Data.Text as T
 import Debug.Trace
+import Config
 
-
--- Global config constants
-version = "0.4"
-botNick = "annaisnotabot"
-channelNames = ["#botenannatest","#botenannatest1"]
-debugMsg = False
-logging = False
-logName = "boten-anna.log"
-pgf = readPGF "Anna.pgf"
+pgf = readPGF grammarName
 
 -- Data type for the nick list
 type NickList = ([(B.ByteString,S.Set B.ByteString)])
@@ -362,7 +356,7 @@ main =
           cPort                = 6667,
           cSecure              = False,
           cNick                = botNick,
-          cPass                = Nothing, -- Optional server password
+          cPass                = botPass, 
           cUsername            = botNick,
           cRealname            = "Boten Anna",
           cChannels            = channelNames,
