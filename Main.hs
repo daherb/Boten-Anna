@@ -17,6 +17,7 @@ import System.IO
 import Control.Monad
 import qualified Data.Text as T
 import Debug.Trace
+import Control.Exception
 import Config
 
 pgf = readPGF grammarName
@@ -336,6 +337,15 @@ onRawMsg iohandle ionicklist s m =
     where chan = head $ fromJust (mOther m)
           nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
 
+run config =
+  do
+    -- Connect to server
+    -- info <- connect config False debugMsg
+    -- server <- let (Right l) = info in return l
+    -- return info
+    --catch (connect config False debugMsg) (\e -> run config (e::SomeException))
+    catch (connect config False debugMsg) (\e -> do putStrLn $ show (e ::SomeException) ; run config)
+    
 -- The main function
 main :: IO (Either IOError MIrc)
 main =
@@ -365,7 +375,4 @@ main =
           cCTCPVersion         = "Boten-Anna " ++ version
 --          cCTCPTime            = fmap (formatTime defaultTimeLocale "%c") getZonedTime
        }
-      -- Connect to server
-      info <- connect config False debugMsg
-      server <- let (Right l) = info in return l
-      return info
+      run config
