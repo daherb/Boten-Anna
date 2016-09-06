@@ -8,3 +8,5 @@ debugMsg = False
 logging = False
 logName = "boten-anna.log"
 grammarName = "Anna.pgf"
+ircServer = "chat.freenode.net"
+ircPort = 6667 :: Int

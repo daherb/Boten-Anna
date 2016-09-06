@@ -362,8 +362,8 @@ main =
       let events    = [(Privmsg (onPrivMsg messages nickList)), (Join (onJoinMsg messages nickList)), (Invite (onInviteMsg nickList)), (Part (onPartMsg nickList)), (RawMsg (onRawMsg handle nickList))]
       -- General config
       let config    = (mkDefaultConfig "" "") {
-          cAddr                = "chat.freenode.net",
-          cPort                = 6667,
+          cAddr                = ircServer,
+          cPort                = ircPort,
           cSecure              = False,
           cNick                = botNick,
           cPass                = botPass, 
