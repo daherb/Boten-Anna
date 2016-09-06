@@ -76,8 +76,8 @@ changeMode mode parsed post context response s m =
       else
         do
           grammar <- pgf
-	  -- "You are a little bit verbose, aren't you?"
-	  let response = linearize grammar (mkCId "AnnaEngR") (mkFun "verboseP")
+          -- "You are a little bit verbose, aren't you?"
+          let response = linearize grammar (mkCId "AnnaEngR") (mkFun "verboseP")
           sendResponse response s m
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
@@ -111,8 +111,8 @@ pingUser from parsed post context response iomessages s m =
     else
         do
           grammar <- pgf
-	  -- "You are a little bit verbose, aren't you?"
-	  let response = linearize grammar (mkCId "AnnaEngR") (mkFun "verboseP")
+          -- "You are a little bit verbose, aren't you?"
+          let response = linearize grammar (mkCId "AnnaEngR") (mkFun "verboseP")
           sendResponse response s m
   where chan = if isJust (mChan m) then fromJust (mChan m) else B.pack ""
         nick = if isJust (mNick m) then fromJust (mNick m) else B.pack ""
